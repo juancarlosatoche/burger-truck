@@ -55,12 +55,12 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Bed, nightstand, bedside lamp | Bedroom | P1 (first thing seen) | ⬜ |
 | Sofa, coffee table, plant, rug, painting | Living room | P2 | ⬜ |
 | Front double door, windows | Living room | P2 | ⬜ |
-| Kitchen cabinets, counter, upper cabinets, fridge | Kitchen | P1 (morning missions) | ⬜ |
-| Sink with tap, dish rack | Kitchen | P1 | ⬜ |
+| Kitchen cabinets, counter, upper cabinets, fridge | Kitchen | P1 (morning missions) | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`): shaker doors, drawers, oven, stove, hood, tiles, fridge with magnets and a drawing |
+| Sink with tap, dish rack | Kitchen | P1 | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`) |
 | Dishes (dirty → clean) | Kitchen | P1 | ⬜ |
-| Egg carton, eggs, frying pan, fried eggs | Kitchen | P1 | ⬜ |
-| Bread loaf, toaster, toast | Kitchen | P1 | ⬜ |
-| Dining table, chairs, breakfast plate | Kitchen | P2 | ⬜ |
+| Egg carton, eggs, frying pan, fried eggs | Kitchen | P1 | 🟡 carton and pan from Blender (clicks stay on the code shapes); eggs and fried eggs still code (they change during the mission) |
+| Bread loaf, toaster, toast | Kitchen | P1 | 🟡 toaster from Blender (click stays on the code shape); bread, slices and toast still code |
+| Dining table, chairs, breakfast plate | Kitchen | P2 | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`): table, chairs, fruit bowl, vase, hanging lamp; the breakfast plate stays code (clickable) |
 | House exterior, roof, garden trees, path | Outside | P2 (seen while driving) | ⬜ |
 
 ## Audio (track 2C)

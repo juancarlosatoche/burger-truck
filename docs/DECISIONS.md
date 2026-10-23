@@ -133,3 +133,26 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target's walls are plain gray-beige, without the code's speckled texture.
   - The target's floor has long planks; the game's has a parquet pattern.
   - The bed and lamp now match the style. The target's lamp shade is wider; ours keeps the code's size, because it is also the click target.
+## 2026-10-23: House kitchen from Blender (`house_kitchen.glb`)
+
+- **What:** `source/blender/build_house_kitchen.py` builds:
+  - honey-wood base cabinets with shaker doors, drawers and handles, a stone counter, oven and stove;
+  - a sink with tap, a dish rack and a tiled backsplash;
+  - upper cabinets with doors and a range hood;
+  - a cream fridge with magnets and a child's drawing;
+  - a table with two chairs, a fruit bowl, a vase with flowers and a faceted hanging lamp;
+  - counter details: cutting board, spoon jar, kettle, paper towels.
+
+  **203 KB, ~3.6k triangles.** Scale 1, like the bedroom.
+- **Clicks and missions unchanged:** the code-drawn cabinets, fridge, table and chairs are hidden; their collision boxes stay.
+  - The clickable things that never change (frying pan, toaster, egg carton) are drawn by Blender, but the click still lands on the code shape in the same place. Its *material* is switched off instead of hiding it, because the house only lets you click visible objects.
+  - Things that change during the mission (dirty plates, eggs, bread, slices, toast, fried eggs, foam, breakfast plate) stay code.
+  - Clicks tested: pan, toaster, eggs, plates, breakfast plate.
+- **Metal:** steel and chrome are only slightly metallic in this model. Fully metallic, they reflected the blue sky map and looked navy.
+- **Code:** `cargarModeloCocinaCasa()` is called from `init`. If the file can't load, the code-drawn kitchen stays (tested).
+- **Compared with `kitchen_morning.jpg`:**
+  - The target has a big window over the sink, with golden sun beams. Our back wall has no window; windows belong to the walls (still code).
+  - The target's light is strong, warm and low; ours is even and flat.
+  - The target's plates are colorful and its cups are on the counter; ours are the code's mission plates.
+  - The target's eggs sit in a 6-egg carton; ours shows the code's 2 eggs in the Blender carton.
+  - Cabinets, stove, pan, toaster, table and chairs now match the style.

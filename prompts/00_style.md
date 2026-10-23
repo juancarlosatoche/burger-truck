@@ -1,6 +1,12 @@
-# The chosen style: "cozy dusk, stylized low-poly"
+# The chosen style: D, "Cozy low-poly with glow"
 
 **Style target:** [`reference/style-targets/truck_window_dusk.jpg`](../reference/style-targets/truck_window_dusk.jpg)
+
+**Original prompt that produced it:** the shared scene from `01_art_direction.md` plus:
+
+> Style: stylized low-poly 3D, faceted shapes with smooth gradient lighting, strong bloom on the string lights and sign, volumetric warm light, soft fog, cozy sunset mood.
+
+The style line below keeps that wording and adds what the image actually shows, such as the smooth characters and the materials. That way, scenes that aren't the truck window still come out matching.
 
 This file is the single source of truth for the look of the game.
 
@@ -11,7 +17,7 @@ This file is the single source of truth for the look of the game.
 
 ## Style line (copy this)
 
-> Style: stylized 3D game art with a cozy dusk mood. Trees, bread and simple props use soft faceted low-poly shapes with smooth gradient shading; characters are smooth, rounded and friendly, with simple faces, slightly large heads and soft clothing folds. Materials: brushed stainless steel, warm wood, matte painted walls, fresh saturated food colors. Lighting: deep indigo-to-sunset-orange sky, warm amber practical lights (string bulbs, street lamps, kitchen lights) with gentle bloom, soft shadows, light ambient occlusion. No outlines, no text.
+> Style: stylized low-poly 3D, faceted shapes with smooth gradient lighting, strong bloom on the string lights and signs, volumetric warm light, soft fog, cozy sunset mood. Characters are smooth, rounded and friendly, with simple faces, slightly large heads and soft clothing folds. Materials: brushed stainless steel, warm wood, matte painted walls, fresh saturated food colors. Deep indigo-to-sunset-orange sky, warm amber lights, soft shadows. No outlines, no text.
 
 ## The style in detail
 
@@ -21,7 +27,7 @@ This file is the single source of truth for the look of the game.
 | **Characters** | About 5 heads tall, slightly big heads, simple faces (dot-ish eyes, small smile), casual clothes in muted colors (green hoodie, blue jacket), varied skin tones and hair. | One shared body type, so one skeleton fits all. Vary outfit, hair and skin. |
 | **Palette** | Sky: deep navy and indigo, with orange and pink at the horizon. Interior: warm amber, cream and tan. Accents: food reds, greens and yellows. | Keep saturation for **food and accents only**. Walls, furniture and the street stay muted. |
 | **Materials** | Brushed steel counters and trays, warm wood window frame and shelves, matte walls, slightly glossy food. | Steel: metallic with soft reflections. Wood: warm and slightly rough. No plastic-looking shine. |
-| **Lighting** | Dusk sky, warm lights everywhere (string bulbs, street lamp, ceiling strip), soft shadows and gentle glow on the bulbs. | The game's time-of-day system and bloom already match this direction. Tune toward the target, not away from it. |
+| **Lighting** | Dusk sky, warm lights everywhere (string bulbs, street lamp, ceiling strip), soft shadows, **strong glow** on bulbs and signs, warm haze and soft fog in the distance. | The game's time-of-day system, bloom and fog already exist. Push them toward the target: stronger bloom on lights, warmer fog. |
 | **Camera** | First person, eye level, looking through the service window over the counter. | Re-shoot comparison screenshots from this angle (see `docs/PIPELINE.md` stage 4). |
 
 ## Ideas the mockup suggests (not decided yet)

@@ -14,10 +14,10 @@ Newest at the bottom. Write down the **why**, so a future you (or an AI) doesn't
 
 ## 2026-10-22: Art direction chosen (Stage 1)
 
-- [x] **Chosen mockup:** `reference/mockups/mockup_favorite_truck_window_dusk.jpg`, also saved as the first style target `reference/style-targets/truck_window_dusk.jpg`.
-- [x] **Style:** "cozy dusk, stylized low-poly".
+- [x] **Chosen mockup:** style **D, "Cozy low-poly with glow"**, from `prompts/01_art_direction.md`. Saved as `reference/mockups/mockup_D_cozy_lowpoly_glow.jpg`, and as the first style target `reference/style-targets/truck_window_dusk.jpg`.
+- [x] **Style:**
   - Faceted low-poly environment and props, but smooth rounded characters and food.
-  - Indigo-to-sunset sky with warm amber lights and gentle bloom.
+  - Indigo-to-sunset sky with warm amber lights, **strong bloom** on string lights and signs, volumetric warm light and soft fog.
   - Brushed steel and warm wood. No outlines.
 - [x] **Style line and full breakdown:** [`prompts/00_style.md`](../prompts/00_style.md).
 - **Why it fits:** low-poly props are quick to model in Blender and keep `.glb` files small for GitHub Pages. The dusk lighting matches the game's existing time-of-day system and bloom.

@@ -1,0 +1,22 @@
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Blender auto-backups
+*.blend1
+*.blend2
+
+# Editors
+.vscode/
+.idea/
+
+# Node (if a build tool is added later)
+node_modules/
+dist/
+
+# Never commit API keys (ElevenLabs, Tripo, image generators)
+.env
+.env.*
+*secret*
+*apikey*

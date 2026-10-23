@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casa 3D Primera Persona</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuentes: Fredoka (títulos divertidos) + Inter (texto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PointerLockControls CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <!-- ✨ NUEVO: post-procesado (brillo / bloom y gradación de color) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <style>
+        html, body { touch-action: none; overscroll-behavior: none; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .font-fun { font-family: 'Fredoka', 'Inter', sans-serif; }
+        /* ✨ NUEVO: notificaciones tipo "toast" que aparecen y se esconden solas */
+        #job-banner { opacity: 0; transform: translate(-50%, -14px) scale(.96); transition: opacity .35s ease, transform .35s cubic-bezier(.2,1.4,.4,1); pointer-events: none; }
+        #job-banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        #interaction-prompt { font-family: 'Fredoka', 'Inter', sans-serif; letter-spacing: .01em; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <!-- Black Screen / Eye Blink Overlay for Wake Up Animation -->
+    <div id="eye-overlay" class="fixed inset-0 bg-black z-40 pointer-events-none transition-opacity duration-1000 opacity-100"></div>
+
+    <!-- Instructions / Menu Overlay -->
+    <div id="instructions" class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer z-50 transition-opacity duration-300">
+        <div class="bg-gray-900/90 border border-amber-400/30 p-8 rounded-3xl shadow-2xl max-w-md text-center backdrop-blur-md">
+            <div class="text-amber-400 text-5xl mb-3">🍔</div>
+            <h1 class="font-fun text-3xl font-bold mb-1 text-white">Explorador de Casa 3D</h1>
+            <p class="text-amber-200/80 text-sm mb-6">Despierta de noche, aprende los controles, duerme hasta mañana, haz tus misiones en la cocina y atiende tu Food Truck.</p>
+
+            <div class="bg-black/40 p-4 rounded-2xl mb-6 text-left text-xs space-y-2 text-gray-300 border border-white/10">
+                <p class="font-semibold text-amber-300 mb-1">Controles de PC:</p>
+                <p><span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">W A S D</span> / <span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">Flechas</span> : Moverse</p>
+                <p><span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">Mouse</span> : Mirar alrededor (si no se bloquea, arrastra con el clic)</p>
+                <p class="font-semibold text-amber-300 mt-3 mb-1">Controles táctiles (Móvil):</p>
+                <p>Joystick (abajo a la izquierda) para moverte y desliza el dedo en la pantalla para mirar. Toca para interactuar.</p>
+            </div>
+
+            <button id="btn-start" class="font-fun w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-black text-lg font-semibold py-3 px-6 rounded-2xl shadow-lg shadow-orange-500/30 transition transform active:scale-95">
+                Despertar y Explorar
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Shift Modal Dialogue -->
+    <div id="shift-modal" class="absolute inset-0 bg-black/70 flex items-center justify-center z-50 hidden backdrop-blur-md">
+        <div class="bg-gray-900/95 border border-amber-500/30 p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+            <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                🍔
+            </div>
+            <h2 class="font-fun text-2xl font-bold text-white mb-2">¿Empezar Turno de Comida?</h2>
+            <p class="text-gray-300 text-sm mb-6">Tu Food Truck está estacionado afuera. Tendrás que conducirlo hasta su lugar de trabajo. ¿Salir ahora?</p>
+            <div class="flex gap-3">
+                <button id="btn-cancel-shift" class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 py-2.5 px-4 rounded-xl font-medium transition">
+                    Permanecer
+                </button>
+                <button id="btn-confirm-shift" class="font-fun flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2.5 px-4 rounded-xl shadow-lg transition">
+                    Ir al Food Truck
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Overlay (toast) -->
+    <div id="job-banner" class="font-fun absolute top-6 left-1/2 bg-amber-400/95 text-black font-semibold px-6 py-2.5 rounded-2xl shadow-xl shadow-black/40 z-30 border border-amber-200 text-sm max-w-[90vw] text-center">
+        🍔 ¡Bienvenido a tu Food Truck!
+    </div>
+
+    <!-- Inventory / Held Item Display -->
+    <div id="holding-ui" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/85 text-white font-medium px-5 py-2.5 rounded-2xl shadow-xl z-30 hidden backdrop-blur-md border border-white/10 flex items-center gap-3">
+        <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">En mano:</span>
+        <span id="holding-item-name" class="font-fun text-amber-300 font-semibold text-sm">Ninguno</span>
+        <button id="btn-drop" class="ml-2 bg-red-500/20 hover:bg-red-500/40 text-red-300 text-xs px-2.5 py-1 rounded-lg border border-red-500/30 transition">Soltar</button>
+    </div>
+
+    <!-- Interaction Prompt Tooltip -->
+    <div id="interaction-prompt" class="absolute top-2/3 left-1/2 -translate-x-1/2 bg-black/75 text-amber-200 px-4 py-2 rounded-2xl text-sm font-medium shadow-lg z-30 hidden pointer-events-none border border-amber-400/30 backdrop-blur-sm">
+        [ Click ] Interactuar
+    </div>
+
+    <!-- Crosshair -->
+    <div id="crosshair" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white/80 border border-black/40 rounded-full pointer-events-none z-20 hidden shadow"></div>
+
+    <!-- Joystick virtual (móvil) -->
+    <div id="mobile-controls" class="hidden select-none" style="position:absolute;left:24px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.25);z-index:30;touch-action:none">
+        <div id="joy-knob" style="position:absolute;left:35px;top:35px;width:60px;height:60px;border-radius:50%;background:rgba(251,191,36,.85);box-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none"></div>
+    </div>
+
+    <!-- Mensaje en el teléfono -->
+    <div id="phone-msg" class="absolute left-1/2 top-24 hidden bg-gray-950/95 border border-sky-400/40 rounded-3xl px-4 py-3 shadow-2xl backdrop-blur-md" style="z-index:45;width:19rem;transform:translateX(-50%)">
+        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>📱 Mensaje nuevo</span><span>ahora</span></div>
+        <div class="font-fun text-sky-300 text-sm mb-0.5">Amigo</div>
+        <div class="text-sm text-white">Hola amigo, te he conseguido un trabajo en un food truck 🍔 ¡Empiezas mañana!</div>
+    </div>
+
+    <!-- Misiones de la mañana (casa) -->
+    <div id="mission-hud" class="absolute left-4 top-4 hidden bg-gray-900/80 border border-amber-400/30 rounded-2xl px-4 py-2.5 text-xs text-white backdrop-blur-md shadow-xl" style="z-index:30;max-width:15rem"></div>
+
+    <!-- HUD tycoon -->
+    <div id="tycoon-hud" class="absolute top-4 right-4 hidden bg-gray-900/80 border border-amber-400/30 rounded-2xl px-4 py-2.5 text-sm text-white backdrop-blur-md shadow-xl" style="z-index:30">
+        <div>💰 <b id="th-money" class="font-fun text-amber-300 text-base">$50</b> <span class="text-gray-400 text-xs">hoy <b id="th-today">$0</b></span></div>
+        <div>🕔 <b id="th-time">5:00 PM</b> · Día <b id="th-day">1</b></div>
+        <div>⭐ <b id="th-rep">0.0</b> reputación</div>
+    </div>
+
+    <!-- Receta fijada en un lado de la pantalla -->
+    <div id="recipe-hud" class="absolute left-4 top-1/4 hidden bg-gray-900/80 border border-amber-400/30 rounded-2xl p-3 text-xs text-white backdrop-blur-md shadow-xl" style="z-index:30;width:11.5rem">
+        <div class="flex justify-between items-center mb-1"><b id="rh-title" class="font-fun text-amber-300 text-sm"></b><button id="rh-close" class="text-gray-400 hover:text-white px-1">✕</button></div>
+        <ol id="rh-list" class="space-y-0.5"></ol>
+    </div>
+
+    <!-- Computadora del food truck -->
+    <div id="pc-overlay" class="fixed inset-0 hidden bg-black/85 flex items-center justify-center p-3" style="z-index:60">
+        <div class="w-full max-w-3xl rounded-xl overflow-hidden border-4 border-gray-600 bg-gradient-to-br from-sky-900 to-indigo-950 flex flex-col shadow-2xl" style="height:34rem;max-height:92vh">
+            <div class="bg-gray-900 px-3 py-2 flex justify-between items-center text-xs">
+                <span>💻 FoodOS · Dinero: <b id="pc-money" class="text-amber-300">$0</b></span>
+                <span><button id="pc-home" class="px-2 py-1 bg-gray-700 rounded mr-1">🏠 Escritorio</button><button id="pc-exit" title="Salir (tecla X)" class="px-3 py-1 bg-red-600 hover:bg-red-700 rounded font-bold">✕</button></span>
+            </div>
+            <div id="pc-body" class="flex-1 overflow-auto p-4 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <script>
+        let camera, scene, renderer, controls;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let prevTime = performance.now();
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+
+        // Modal & Animation State flags
+        let isShiftPromptActive = false;
+        let fallbackMode = false; // true cuando Pointer Lock no está disponible: se mira arrastrando el mouse
+        let dragDist = 0;
+        let hasStarted = false;
+        let isWakingUp = false;
+        let wakeUpProgress = 0; // 0 to 1
+
+        // Initial Bed Position for Awakening Sequence
+        const bedPosition = new THREE.Vector3(4, 0.95, -3); // Resting on mattress
+        const HOME_EYE = 2.1; // altura de tus ojos en la casa
+        const standingPosition = new THREE.Vector3(4, HOME_EYE, -1.2); // Standing next to bed
+
+        // Collision boxes array
+        const colliders = [];
+        const homeBoxes = []; // ✨ NUEVO: cajas de choque reales (paredes y muebles)
+
+        // Game Locations / States
+        let currentScene = 'HOME'; // 'HOME' or 'FOOD_TRUCK'
+        let foodTruckGroup;
+
+        // --- FOOD TRUCK INTERACTION SYSTEM ---
+        let raycaster = new THREE.Raycaster();
+        let mouseCenter = new THREE.Vector2(0, 0); // Center screen raycast
+        let interactableObjects = [];
+        let hoveredObject = null;
+
+        let heldItem = null; // Currently carrying ingredient in hand
+        let heldItemMesh = null; // 3D Mesh attached to camera in hand
+        let isFridgeOpen = true; // Empieza abierta para ver el interior
+        let fridgeDoorGroup;
+
+        // Assembly Plate stack
+        let burgerStack = []; // Array of ingredient types on plate
+        let plateGroup;
+        let grillPatties = []; // Patties cooking on grill [{ mesh, rawTime, isCooked }]
+
+        let MAX_STOCK = 2;
+        let screenCanvas, screenTex;
+        const INGREDIENT_DEFS = {
+            CARNE_CRUDA: { label: 'Carne Cruda', geo: () => new THREE.CylinderGeometry(0.11, 0.11, 0.03, 16), color: 0x8b263e, rough: 0.8, pos: i => [-0.75, 1.42, -2.3 + i * 0.15] },
+            QUESO: { label: 'Lámina de Queso', geo: () => new THREE.BoxGeometry(0.22, 0.015, 0.22), color: 0xffb703, rough: 0.6, pos: i => [-0.75, 1.02, -2.3 + i * 0.15] },
+            LECHUGA: { label: 'Hoja de Lechuga', geo: () => new THREE.CylinderGeometry(0.12, 0.1, 0.02, 8), color: 0x52b788, rough: 0.9, pos: i => [-0.75, 0.62, -2.3 + i * 0.15] },
+            TOMATE: { label: 'Rodaja de Tomate', geo: () => new THREE.CylinderGeometry(0.1, 0.1, 0.025, 12), color: 0xe63946, rough: 0.7, pos: i => [-0.75, 0.22, -2.3 + i * 0.15] },
+            PAN_ABAJO: { label: 'Pan Base', geo: () => new THREE.CylinderGeometry(0.12, 0.12, 0.04, 16), color: 0xe09f67, rough: 0.8, pos: i => [-0.95, 0.92 + i * 0.08, 1.5] },
+            PAN_ARRIBA: { label: 'Pan Tapa', geo: () => new THREE.CylinderGeometry(0.11, 0.13, 0.06, 16), color: 0xe09f67, rough: 0.8, pos: i => [-0.95, 0.96 + i * 0.08, 1.8] }
+        };
+
+        let joyX = 0, joyY = 0; // joystick analógico (-1 a 1)
+        const TRUCK_SCALE = 2.0;  // ancho y largo del food truck
+        const TRUCK_HEIGHT = 1.8; // escala vertical de muebles y objetos
+        const TRUCK_EXTRA_H = 0.8; // altura extra de paredes y techo (sin estirar los muebles)
+        const TRUCK_EYE = 2.6;   // altura de la vista dentro del truck
+        let pinnedRecipe = null;
+        const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let homeInteractables = [], homeAPI = null, homeHover = null, missionsDone = false, gateT = 0; // 🏠 misiones de la casa
+        const drive = { x: 14, z: 24, th: -Math.PI / 2, sp: 0, arrived: false, cam: new THREE.Vector3(), hudT: 0, zone: [], zoneMat: null }; // 🚚 conducción
+        let homeHour = 23.5, sunBeamMat = null; // la casa empieza de noche
+        let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
+
+        // =====================================================================
+        // ✨ NUEVO: LUZ, CIELO, BRILLO Y REFLEJOS
+        // =====================================================================
+        let composer = null, bloomPass = null, gradePass = null, hdr = false;
+        let sunLight, ambientLight, hemiLight, envMap = null;
+        let skyGroup, skyMat, starsMat, moonSprite, clouds = [];
+        const homeLights = [], truckLights = [];          // luces que solo se encienden en su escena
+        const lampLights = [], lampMats = [];             // cosas que se prenden al anochecer
+        let lampsOn = 0, currentHour = 16.4;
+        const _c1 = new THREE.Color(), _c2 = new THREE.Color();
+
+        // Momentos del día: 4 PM dorado → atardecer → noche estrellada
+        const TOD = [
+            { h: 16.0, top: 0x5f9fd8, hor: 0xffd8a6, sun: 0xffd9a8, si: 1.15, amb: 0.30, hemi: 0.50, lamps: 0.0, stars: 0.0, el: 0.32 },
+            { h: 17.2, top: 0x4b70ad, hor: 0xffb06e, sun: 0xffa868, si: 0.95, amb: 0.27, hemi: 0.42, lamps: 0.1, stars: 0.0, el: 0.13 },
+            { h: 18.1, top: 0x2b3874, hor: 0xff7a58, sun: 0xff7350, si: 0.55, amb: 0.22, hemi: 0.32, lamps: 0.7, stars: 0.15, el: 0.02 },
+            { h: 19.0, top: 0x141c4a, hor: 0x8c4b7d, sun: 0x9d82d8, si: 0.30, amb: 0.18, hemi: 0.25, lamps: 1.0, stars: 0.6, el: -0.08 },
+            { h: 20.5, top: 0x080d2b, hor: 0x2c2d5a, sun: 0x92a8ff, si: 0.24, amb: 0.16, hemi: 0.21, lamps: 1.0, stars: 1.0, el: -0.2 },
+            { h: 24.0, top: 0x04061a, hor: 0x17193b, sun: 0x8095ee, si: 0.22, amb: 0.15, hemi: 0.19, lamps: 1.0, stars: 1.0, el: -0.3 }
+        ];
+        const SUN_AZ = new THREE.Vector3(0.55, 0, -0.83).normalize();   // el sol se esconde por aquí
+        const MOON_DIR = new THREE.Vector3(0.55, 0.62, 0.56).normalize();
+
+        // Gradación de color tipo película: tono ACES, contraste, tinte cálido y viñeta
+        const GradeShader = {
+            uniforms: {
+                tDiffuse: { value: null }, exposure: { value: 0.95 }, useACES: { value: 1 },
+                vignette: { value: 0.38 }, saturation: { value: 1.1 }, contrast: { value: 1.06 },
+                shadowTint: { value: new THREE.Vector3(0.93, 0.96, 1.1) }, highTint: { value: new THREE.Vector3(1.06, 1.0, 0.9) },
+                time: { value: 0 }, grain: { value: 0.022 }
+            },
+            vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+            fragmentShader: `
+                uniform sampler2D tDiffuse; uniform float exposure, useACES, vignette, saturation, contrast, time, grain;
+                uniform vec3 shadowTint, highTint; varying vec2 vUv;
+                vec3 RRTAndODTFit(vec3 v){ vec3 a = v*(v+0.0245786)-0.000090537; vec3 b = v*(0.983729*v+0.4329510)+0.238081; return a/b; }
+                vec3 aces(vec3 c){
+                    const mat3 I = mat3(vec3(0.59719,0.07600,0.02840), vec3(0.35458,0.90834,0.13383), vec3(0.04823,0.01566,0.83777));
+                    const mat3 O = mat3(vec3(1.60475,-0.10208,-0.00327), vec3(-0.53108,1.10813,-0.07276), vec3(-0.07367,-0.00605,1.07602));
+                    c *= exposure / 0.6; c = I * c; c = RRTAndODTFit(c); c = O * c; return clamp(c, 0.0, 1.0);
+                }
+                float rand(vec2 co){ return fract(sin(dot(co, vec2(12.9898,78.233))) * 43758.5453); }
+                void main(){
+                    vec3 c = texture2D(tDiffuse, vUv).rgb;
+                    if (useACES > 0.5) c = aces(c);
+                    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+                    c = mix(c * shadowTint, c * highTint, smoothstep(0.12, 0.75, l));
+                    c = mix(vec3(l), c, saturation);
+                    c = (c - 0.5) * contrast + 0.5;
+                    vec2 d = (vUv - 0.5) * vec2(1.15, 1.0);
+                    c *= 1.0 - vignette * smoothstep(0.35, 1.05, length(d) * 1.45);
+                    c += (rand(vUv * vec2(1280.0, 720.0) + fract(time)) - 0.5) * grain;
+                    gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+                }`
+        };
+
+        function setupPost() {
+            if (!THREE.EffectComposer || !THREE.UnrealBloomPass || !THREE.RenderPass || !THREE.ShaderPass) return;
+            try {
+                hdr = renderer.capabilities.isWebGL2;
+                const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+                const opts = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, type: hdr ? THREE.HalfFloatType : THREE.UnsignedByteType };
+                let rt;
+                if (hdr && THREE.WebGLMultisampleRenderTarget) { rt = new THREE.WebGLMultisampleRenderTarget(size.x, size.y, opts); rt.samples = IS_TOUCH ? 2 : 4; }
+                else rt = new THREE.WebGLRenderTarget(size.x, size.y, opts);
+                composer = new THREE.EffectComposer(renderer, rt);
+                composer.setPixelRatio(renderer.getPixelRatio());
+                composer.setSize(window.innerWidth, window.innerHeight);
+                composer.addPass(new THREE.RenderPass(scene, camera));
+                bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), hdr ? 0.6 : 0.4, 0.42, hdr ? 1.9 : 0.86);
+                composer.addPass(bloomPass);
+                gradePass = new THREE.ShaderPass(GradeShader);
+                if (hdr) renderer.toneMapping = THREE.NoToneMapping; // el tono ACES lo hace la gradación
+                else gradePass.uniforms.useACES.value = 0;
+                composer.addPass(gradePass);
+            } catch (err) { console.warn('Post-procesado desactivado:', err); composer = null; renderer.toneMapping = THREE.ACESFilmicToneMapping; }
+        }
+
+        // Mapa de reflejos: una "habitación" pequeña con paneles de luz, para que el metal brille
+        function buildEnvMap() {
+            try {
+                const pm = new THREE.PMREMGenerator(renderer);
+                const es = new THREE.Scene();
+                es.background = new THREE.Color(0x141824);
+                const panel = (w, h, r, g, b, x, y, z, rx, ry) => {
+                    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b), side: THREE.DoubleSide }));
+                    m.position.set(x, y, z); m.rotation.set(rx, ry, 0); es.add(m);
+                };
+                panel(8, 1.2, 5, 4.6, 4.0, 0, 4, 0, Math.PI / 2, 0);        // tubo de luz en el techo
+                panel(6, 3, 0.6, 0.45, 0.9, 6, 1.5, 0, 0, -Math.PI / 2);    // ventana de atardecer
+                panel(4, 1, 3.5, 1.8, 0.6, -6, 2, 2, 0, Math.PI / 2);       // brillo cálido de foquitos
+                panel(12, 12, 0.18, 0.12, 0.09, 0, -2, 0, -Math.PI / 2, 0); // piso
+                envMap = pm.fromScene(es, 0.04).texture;
+                pm.dispose();
+            } catch (e) { envMap = null; }
+        }
+        function shiny(mat, k = 0.8) { if (envMap && mat) { mat.envMap = envMap; mat.envMapIntensity = k; mat.needsUpdate = true; } return mat; }
+
+        // Cielo: degradado, sol que se pone, estrellas, luna y nubes
+        function buildSky() {
+            skyGroup = new THREE.Group();
+            skyMat = new THREE.ShaderMaterial({
+                side: THREE.BackSide, depthWrite: false, fog: false,
+                uniforms: { top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() }, bottom: { value: new THREE.Color(0x0c0e16) }, sunDir: { value: new THREE.Vector3(1, 0.1, 0) }, sunCol: { value: new THREE.Color() }, glow: { value: 1 } },
+                vertexShader: 'varying vec3 vDir; void main(){ vDir = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }',
+                fragmentShader: `uniform vec3 top, horizon, bottom, sunCol, sunDir; uniform float glow; varying vec3 vDir;
+                    void main(){ vec3 d = normalize(vDir); float h = d.y;
+                        vec3 c = h > 0.0 ? mix(horizon, top, pow(smoothstep(0.0, 0.65, h), 0.65)) : mix(horizon, bottom, smoothstep(0.0, 0.12, -h));
+                        float s = max(dot(d, normalize(sunDir)), 0.0);
+                        c += sunCol * (pow(s, 5.0) * 0.45 + pow(s, 900.0) * 9.0) * glow;
+                        gl_FragColor = vec4(c, 1.0); }`
+            });
+            skyGroup.add(new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), skyMat));
+            // Estrellas
+            const N = 1400, pos = new Float32Array(N * 3);
+            for (let i = 0; i < N; i++) {
+                const u = Math.random() * Math.PI * 2, v = Math.acos(1 - Math.random() * 0.95);
+                pos[i * 3] = Math.sin(v) * Math.cos(u) * 380; pos[i * 3 + 1] = Math.cos(v) * 380; pos[i * 3 + 2] = Math.sin(v) * Math.sin(u) * 380;
+            }
+            const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            starsMat = new THREE.PointsMaterial({ color: new THREE.Color(2.2, 2.2, 2.6), size: 1.7, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false });
+            const stars = new THREE.Points(sg, starsMat); stars.frustumCulled = false; skyGroup.add(stars);
+            // Luna
+            const mc = document.createElement('canvas'); mc.width = mc.height = 128; const m2 = mc.getContext('2d');
+            const gg = m2.createRadialGradient(64, 64, 18, 64, 64, 64); gg.addColorStop(0, 'rgba(220,230,255,0.55)'); gg.addColorStop(1, 'rgba(220,230,255,0)');
+            m2.fillStyle = gg; m2.fillRect(0, 0, 128, 128);
+            m2.fillStyle = '#f4f1e6'; m2.beginPath(); m2.arc(64, 64, 22, 0, 7); m2.fill();
+            m2.fillStyle = 'rgba(170,165,150,0.45)'; [[56, 58, 5], [70, 70, 4], [66, 54, 3], [58, 72, 3]].forEach(([x, y, r]) => { m2.beginPath(); m2.arc(x, y, r, 0, 7); m2.fill(); });
+            moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(mc), color: new THREE.Color(2, 2, 2.2), transparent: true, fog: false, depthWrite: false }));
+            moonSprite.position.copy(MOON_DIR).multiplyScalar(340); moonSprite.scale.setScalar(70); skyGroup.add(moonSprite);
+            // Nubes suaves
+            const cc = document.createElement('canvas'); cc.width = 256; cc.height = 128; const c3 = cc.getContext('2d');
+            for (let i = 0; i < 14; i++) {
+                const x = 40 + Math.random() * 176, y = 60 + Math.random() * 30, r = 18 + Math.random() * 26;
+                const g = c3.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+                c3.fillStyle = g; c3.beginPath(); c3.arc(x, y, r, 0, 7); c3.fill();
+            }
+            const cloudTex = new THREE.CanvasTexture(cc);
+            for (let i = 0; i < 12; i++) {
+                const a = Math.random() * Math.PI * 2, el = 0.08 + Math.random() * 0.22;
+                const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, fog: false, depthWrite: false, opacity: 0.8 }));
+                s.position.set(Math.cos(a) * Math.cos(el) * 300, Math.sin(el) * 300, Math.sin(a) * Math.cos(el) * 300);
+                s.scale.set(90 + Math.random() * 90, 36 + Math.random() * 20, 1);
+                skyGroup.add(s); clouds.push(s);
+            }
+            scene.add(skyGroup);
+        }
+
+        // Cambia todo el ambiente según la hora (16 = 4 PM, 23 = 11 PM)
+        function setTimeOfDay(hour) {
+            currentHour = hour;
+            let i = 0; while (i < TOD.length - 2 && hour > TOD[i + 1].h) i++;
+            const A = TOD[i], B = TOD[i + 1];
+            const t = THREE.MathUtils.clamp((hour - A.h) / (B.h - A.h), 0, 1);
+            const L = (k) => A[k] + (B[k] - A[k]) * t;
+            const col = (k, out) => out.setHex(A[k]).lerp(_c2.setHex(B[k]), t);
+            const top = col('top', skyMat.uniforms.top.value), hor = col('hor', skyMat.uniforms.horizon.value);
+            const el = L('el'), night = THREE.MathUtils.clamp(-el / 0.15, 0, 1);
+            const sunDir = new THREE.Vector3(SUN_AZ.x * Math.cos(el), Math.sin(el), SUN_AZ.z * Math.cos(el));
+            skyMat.uniforms.sunDir.value.copy(sunDir);
+            col('sun', skyMat.uniforms.sunCol.value); skyMat.uniforms.glow.value = 1 - night;
+            starsMat.opacity = L('stars');
+            moonSprite.material.opacity = 0.25 + 0.75 * night;
+            clouds.forEach(s => { s.material.color.copy(hor).lerp(_c1.setRGB(1, 1, 1), 0.35 * (1 - night)).multiplyScalar(0.55 + 0.6 * (1 - night)); s.material.opacity = 0.75 - 0.35 * night; });
+            // Luz principal: sol de día, luna de noche
+            const lightDir = sunDir.clone(); lightDir.y = Math.max(lightDir.y, 0.12);
+            lightDir.lerp(MOON_DIR, night).normalize();
+            sunLight.position.copy(sunLight.target.position).addScaledVector(lightDir, 30);
+            col('sun', sunLight.color); sunLight.intensity = L('si');
+            ambientLight.intensity = L('amb');
+            hemiLight.intensity = L('hemi');
+            hemiLight.color.copy(top).lerp(_c1.setRGB(1, 1, 1), 0.5);
+            hemiLight.groundColor.setHex(0x5a3f33).lerp(_c1.setHex(0x1c1626), night);
+            scene.fog.color.copy(hor).lerp(top, 0.35).multiplyScalar(0.85);
+            // Faroles y foquitos se prenden al anochecer
+            lampsOn = L('lamps');
+            lampLights.forEach(o => o.light.intensity = o.base * (0.05 + 0.95 * lampsOn));
+            lampMats.forEach(o => {
+                if (o.basic) o.mat.color.setScalar(o.min + (o.max - o.min) * lampsOn);
+                else o.mat.emissiveIntensity = o.min + (o.max - o.min) * lampsOn;
+            });
+        }
+
+        function setSceneLights(name) {
+            homeLights.forEach(l => l.visible = name === 'HOME');
+            truckLights.forEach(l => l.visible = name === 'FOOD_TRUCK');
+            if (name === 'FOOD_TRUCK') { sunLight.target.position.set(54, 0, 54); scene.fog.density = 0.016; }
+            else { sunLight.target.position.set(0, 0, 0); scene.fog.density = 0.02; }
+            sunLight.target.updateMatrixWorld();
+            setTimeOfDay(name === 'FOOD_TRUCK' ? 17 + gameMin / 60 : homeHour);
+        }
+
+        // --- TEXTURAS PROCEDURALES: comida y food truck ---
+        const rr_ = (a, b) => a + Math.random() * (b - a);
+        const blots = (c, n, size, col, rmin, rmax) => { for (let i = 0; i < n; i++) { c.fillStyle = col(); c.beginPath(); c.ellipse(rr_(0, size), rr_(0, size), rr_(rmin, rmax), rr_(rmin, rmax) * 0.7, rr_(0, 3), 0, 7); c.fill(); } };
+        const foodMats = {};
+        function foodMat(type) {
+            if (foodMats[type]) return foodMats[type];
+            const N = 256;
+            const defs = {
+                CARNE_CRUDA: ['#a82a43', c => {
+                    blots(c, 90, N, () => `rgba(255,${210 + rr_(0, 40)},${210 + rr_(0, 40)},${rr_(0.25, 0.6)})`, 2, 9);
+                    blots(c, 160, N, () => `rgba(70,5,20,${rr_(0.1, 0.3)})`, 2, 7);
+                }, 0.55],
+                CARNE_COCINADA: ['#5a3317', c => {
+                    blots(c, 120, N, () => `rgba(130,80,35,${rr_(0.2, 0.5)})`, 3, 12);
+                    blots(c, 150, N, () => `rgba(20,10,5,${rr_(0.15, 0.4)})`, 2, 6);
+                    c.strokeStyle = 'rgba(15,8,4,0.85)'; c.lineWidth = 16;
+                    for (let k = -1; k < 6; k++) { c.beginPath(); c.moveTo(k * 55, 0); c.lineTo(k * 55 + 130, N); c.stroke(); }
+                }, 0.7],
+                QUESO: ['#ffb703', c => {
+                    blots(c, 40, N, () => `rgba(255,225,110,${rr_(0.3, 0.6)})`, 8, 25);
+                    blots(c, 14, N, () => 'rgba(190,110,0,0.45)', 3, 8);
+                }, 0.4],
+                LECHUGA: ['#5db85a', c => {
+                    blots(c, 70, N, () => `rgba(30,110,40,${rr_(0.2, 0.45)})`, 10, 30);
+                    blots(c, 50, N, () => `rgba(190,240,150,${rr_(0.2, 0.4)})`, 8, 22);
+                    c.strokeStyle = 'rgba(225,255,205,0.75)'; c.lineWidth = 4;
+                    for (let k = -4; k <= 4; k++) { c.beginPath(); c.moveTo(128, N); c.quadraticCurveTo(128 + k * 18, 140, 128 + k * 38, 10); c.stroke(); }
+                }, 0.55],
+                TOMATE: ['#d62839', c => {
+                    const g = c.createRadialGradient(128, 128, 10, 128, 128, 128); g.addColorStop(0, '#f2585f'); g.addColorStop(1, '#b81c2c');
+                    c.fillStyle = g; c.fillRect(0, 0, N, N);
+                    c.fillStyle = 'rgba(255,214,160,0.85)';
+                    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; c.beginPath(); c.ellipse(128 + Math.cos(a) * 58, 128 + Math.sin(a) * 58, 14, 24, a, 0, 7); c.fill(); }
+                    c.strokeStyle = 'rgba(255,180,170,0.8)'; c.lineWidth = 5; c.beginPath(); c.arc(128, 128, 118, 0, 7); c.stroke();
+                }, 0.3],
+                PAN: ['#d9903d', c => {
+                    const g = c.createRadialGradient(128, 110, 10, 128, 128, 140); g.addColorStop(0, '#f4b867'); g.addColorStop(1, '#a9652a');
+                    c.fillStyle = g; c.fillRect(0, 0, N, N);
+                    blots(c, 160, N, () => `rgba(120,60,15,${rr_(0.08, 0.25)})`, 2, 6);
+                }, 0.75]
+            };
+            const key = type.indexOf('PAN') === 0 ? 'PAN' : type;
+            const d = defs[key]; if (!d) return (foodMats[type] = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 }));
+            const tex = makeTex(d[0], c => {
+                d[1](c);
+                if (type === 'PAN_ARRIBA') { for (let i = 0; i < 70; i++) { c.fillStyle = '#fff2c4'; c.beginPath(); c.ellipse(rr_(30, 226), rr_(30, 226), 4, 2.2, rr_(0, 3), 0, 7); c.fill(); } }
+            }, 1, 1, N);
+            return (foodMats[type] = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, bumpMap: tex, bumpScale: 0.5, roughness: d[2] }));
+        }
+        function truckTex(kind) {
+            const k = {
+                tile: () => makeTex('#eef2f4', c => {
+                    c.strokeStyle = '#aebbc3'; c.lineWidth = 3;
+                    for (let y = 0; y <= 256; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(256, y); c.stroke(); for (let x = ((y / 64) % 2) * 64; x <= 256; x += 128) { c.beginPath(); c.moveTo(x, y); c.lineTo(x, y + 64); c.stroke(); } }
+                }, 4, 3, 256),
+                steel: () => makeTex('#c4cacf', c => { for (let i = 0; i < 700; i++) { c.fillStyle = Math.random() > 0.5 ? `rgba(255,255,255,${rr_(0.05, 0.2)})` : `rgba(60,70,80,${rr_(0.05, 0.15)})`; c.fillRect(0, rr_(0, 256), 256, rr_(0.6, 1.6)); } }, 2, 2, 256),
+                grill: () => makeTex('#161616', c => {
+                    c.fillStyle = '#3d3d3d'; for (let x = 0; x < 256; x += 16) c.fillRect(x, 0, 7, 256);
+                    c.fillStyle = '#2a2a2a'; for (let y = 0; y < 256; y += 64) c.fillRect(0, y, 256, 5);
+                }, 2, 3, 256),
+                floor: () => makeTex('#2b3940', c => {
+                    c.strokeStyle = '#586d77'; c.lineWidth = 3; c.lineCap = 'round';
+                    for (let y = 0; y < 256; y += 32) for (let x = 0; x < 256; x += 32) { const o = ((x + y) / 32) % 2 ? 1 : -1; c.beginPath(); c.moveTo(x + 8, y + 16 - 8 * o); c.lineTo(x + 24, y + 16 + 8 * o); c.stroke(); }
+                }, 8, 14, 256),
+                canopy: () => makeTex('#ffffff', c => { c.fillStyle = '#e63946'; for (let y = 0; y < 256; y += 64) c.fillRect(0, y, 256, 32); }, 1, 1, 256),
+                plate: () => makeTex('#ffffff', c => {
+                    c.strokeStyle = '#cfdae6'; c.lineWidth = 6; c.beginPath(); c.arc(128, 128, 96, 0, 7); c.stroke();
+                    c.lineWidth = 3; c.beginPath(); c.arc(128, 128, 112, 0, 7); c.stroke();
+                }, 1, 1, 256)
+            };
+            return k[kind]();
+        }
+
+        // --- CLIENTES, EXTERIOR DEL TRUCK Y PUERTA DE LA CASA ---
+        let doorL, doorR, doorOpen = 0, truckDoor, truckDoorOpen = 0, truckOutside = false;
+        // Tycoon: reloj (1 min real = 15 min del reloj), reputación, mejoras y entregas
+        const CLOCK_START = 17 * 60, DAY_LENGTH = 360; // empieza 5:00 PM y cierra 11:00 PM
+        let gameMin = 0, day = 1, dayEarned = 0, rep = 0, clockCv, clockTex, lastClockMin = -1, pendingDelivery = null, delivery = null;
+        const upg = { inv: 0, pat: 0, price: 0, space: 0 };
+        const UPG = {
+            inv: { n: '📦 Más inventario', d: '+1 unidad de cada material', base: 40, max: 3 },
+            pat: { n: '⏳ Clientes pacientes', d: '+20 s de paciencia', base: 50, max: 4 },
+            price: { n: '💲 Precios premium', d: '+10% al precio de las hamburguesas', base: 60, max: 4 },
+            space: { n: '🚚 Ampliar el food truck', d: '+1.4 de largo, más mostrador y +1 cliente en fila', base: 120, max: 2 }
+        };
+        const earn = (a) => { money += a; dayEarned += a; };
+        const fmtTime = (m) => { const t = Math.floor(CLOCK_START + m), h = Math.floor(t / 60) % 24; return `${h % 12 || 12}:${String(t % 60).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
+        const customers = [];
+        const CUST_Z = [-1.5, 0.2, 1.7];                // posición de cada cliente (z local del truck)
+        const CUST_X = () => 50 + 2.15 * TRUCK_SCALE;   // justo afuera de la ventana
+        const EMO = { PAN_ABAJO: '🍞', PAN_ARRIBA: '🍞', CARNE_COCINADA: '🥩', QUESO: '🧀', LECHUGA: '🥬', TOMATE: '🍅' };
+
+        // ✨ NUEVO: globo de diálogo con colita, sombra y precio en etiqueta
+        function makeBubble(r) {
+            const cv = document.createElement('canvas'); cv.width = 320; cv.height = 176;
+            const c = cv.getContext('2d');
+            const rrect = (x, y, w, h, rad) => { c.beginPath(); c.moveTo(x + rad, y); c.arcTo(x + w, y, x + w, y + h, rad); c.arcTo(x + w, y + h, x, y + h, rad); c.arcTo(x, y + h, x, y, rad); c.arcTo(x, y, x + w, y, rad); c.closePath(); };
+            c.fillStyle = 'rgba(0,0,0,0.25)'; rrect(10, 12, 300, 128, 28); c.fill();
+            c.fillStyle = '#fffaf0'; rrect(6, 6, 300, 128, 28); c.fill();
+            c.beginPath(); c.moveTo(136, 132); c.lineTo(156, 168); c.lineTo(176, 132); c.fill();
+            c.textAlign = 'left'; c.textBaseline = 'middle';
+            c.fillStyle = '#2b2118'; c.font = '700 34px Fredoka, sans-serif'; c.fillText(r.n, 26, 46);
+            const pt = '$' + r.p; c.font = '700 26px Fredoka, sans-serif'; const pw = c.measureText(pt).width + 22;
+            c.fillStyle = '#f59e0b'; rrect(286 - pw, 28, pw, 36, 18); c.fill();
+            c.fillStyle = '#1b1208'; c.textAlign = 'center'; c.fillText(pt, 286 - pw / 2, 47);
+            c.font = '34px sans-serif'; c.fillText(r.s.map(x => EMO[x]).join(''), 156, 98);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, fog: false }));
+            sp.scale.set(1.5, 0.825, 1); sp.renderOrder = 10; return sp;
+        }
+
+        // ✨ NUEVO: personajes redondos y expresivos con esqueleto simple (piernas, brazos, cabeza, cara)
+        const toon = (col, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.62 }, o));
+        function makePerson(owner, ud, look) {
+            const g = new THREE.Group(); owner.meshes = [];
+            const rig = new THREE.Group(); g.add(rig);
+            const add = (parent, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; };
+            const skin = toon(look.skin), shirt = toon(look.shirt), pants = toon(look.pants), hairM = toon(look.hair, { roughness: 0.45, side: THREE.DoubleSide }), shoe = toon(look.shoe || 0x2a2a2e, { roughness: 0.35 });
+            // Piernas (giran desde la cadera)
+            const legs = [-1, 1].map(s => {
+                const p = new THREE.Group(); p.position.set(0.11 * s, 0.6, 0); rig.add(p);
+                add(p, new THREE.CylinderGeometry(0.078, 0.066, 0.46, 10), pants, 0, -0.25, 0);
+                const sh = add(p, new THREE.SphereGeometry(0.1, 14, 10), shoe, 0, -0.52, 0.04); sh.scale.set(1, 0.62, 1.5);
+                return p;
+            });
+            // Cuerpo en forma de frijol
+            const pts = [[0, 0], [0.19, 0.02], [0.25, 0.14], [0.26, 0.34], [0.21, 0.5], [0.11, 0.57], [0, 0.58]].map(p => new THREE.Vector2(p[0], p[1]));
+            add(rig, new THREE.LatheGeometry(pts, 18), shirt, 0, 0.58, 0).scale.set(1, 1, 0.82);
+            add(rig, new THREE.SphereGeometry(0.2, 16, 10), pants, 0, 0.64, 0).scale.set(1.18, 0.55, 0.95);
+            if (look.apron) add(rig, new THREE.BoxGeometry(0.34, 0.42, 0.02), toon(0xf5f0e6), 0, 0.82, 0.215);
+            // Brazos (giran desde el hombro)
+            const arms = [-1, 1].map(s => {
+                const p = new THREE.Group(); p.position.set(0.27 * s, 1.04, 0); rig.add(p);
+                add(p, new THREE.CylinderGeometry(0.062, 0.055, 0.4, 10), shirt, 0, -0.19, 0);
+                add(p, new THREE.SphereGeometry(0.075, 12, 10), skin, 0, -0.43, 0);
+                p.rotation.z = 0.12 * s; return p;
+            });
+            // Cabeza grande y simpática
+            const head = new THREE.Group(); head.position.set(0, 1.41, 0); rig.add(head);
+            add(head, new THREE.SphereGeometry(0.28, 26, 20), skin, 0, 0, 0);
+            [-1, 1].forEach(s => add(head, new THREE.SphereGeometry(0.06, 10, 8), skin, 0.27 * s, -0.01, 0).scale.set(0.5, 1, 0.8));
+            add(head, new THREE.SphereGeometry(0.04, 10, 8), skin, 0, -0.03, 0.275).scale.set(1, 0.8, 0.8);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: 0.15 }), whiteM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const eyes = [-1, 1].map(s => {
+                const e = add(head, new THREE.SphereGeometry(0.044, 14, 12), eyeMat, 0.1 * s, 0.04, 0.245); e.scale.set(1, 1.25, 0.6); e.castShadow = false;
+                const hl = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 6), whiteM); hl.position.set(0.3, 0.35, 0.85); e.add(hl);
+                return e;
+            });
+            const cheekM = new THREE.MeshBasicMaterial({ color: 0xff7b8a, transparent: true, opacity: 0.45 });
+            [-1, 1].forEach(s => { const ch = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), cheekM); ch.position.set(0.165 * s, -0.06, 0.22); ch.scale.set(1, 0.6, 0.4); head.add(ch); });
+            const browM = toon(look.hair, { roughness: 0.5 });
+            const brows = [-1, 1].map(s => { const b = add(head, new THREE.BoxGeometry(0.075, 0.016, 0.02), browM, 0.1 * s, 0.125, 0.25); b.castShadow = false; return b; });
+            const mouthM = new THREE.MeshBasicMaterial({ color: 0x3a1a14 });
+            const smile = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.011, 6, 14, Math.PI), mouthM); smile.position.set(0, -0.085, 0.262); smile.rotation.z = Math.PI; head.add(smile);
+            const frown = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.011, 6, 14, Math.PI), mouthM); frown.position.set(0, -0.125, 0.258); head.add(frown); frown.visible = false;
+            // Pelo o gorra
+            const style = look.style;
+            if (style === 'cap') {
+                add(head, new THREE.SphereGeometry(0.29, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2.1), toon(look.capCol || look.shirt), 0, 0.03, -0.01);
+                add(head, new THREE.CylinderGeometry(0.17, 0.17, 0.02, 20, 1, false, -Math.PI / 2, Math.PI), toon(look.capCol || look.shirt), 0, 0.07, 0.2).rotation.x = 0.15;
+            } else {
+                add(head, new THREE.SphereGeometry(0.295, 22, 14, 0, Math.PI * 2, 0, Math.PI / 2.05), hairM, 0, 0.025, -0.02).rotation.x = -0.18;
+                if (style === 'bun') add(head, new THREE.SphereGeometry(0.11, 14, 10), hairM, 0, 0.27, -0.12);
+                if (style === 'spiky') for (let k = 0; k < 6; k++) { const sp = add(head, new THREE.ConeGeometry(0.06, 0.16, 6), hairM, Math.cos(k) * 0.12, 0.27, Math.sin(k) * 0.12 - 0.04); sp.rotation.set(Math.sin(k) * 0.5, 0, -Math.cos(k) * 0.5); }
+                if (style === 'long') add(head, new THREE.CylinderGeometry(0.27, 0.3, 0.42, 18, 1, true, Math.PI * 0.62, Math.PI * 1.76), hairM, 0, -0.13, -0.02);
+            }
+            // Caja de choque invisible (más fácil de apuntar que muchas piezas pequeñas)
+            const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.75, 0.6), new THREE.MeshBasicMaterial());
+            hit.position.y = 0.88; hit.visible = false; hit.userData = ud; g.add(hit);
+            interactableObjects.push(hit); owner.meshes.push(hit);
+            owner.rig = { rig, legs, arms, head, eyes, brows, smile, frown, skin, skinBase: skin.color.clone(), walk: 0, mood: 'neutral', moodT: 0, blink: 1 + Math.random() * 3, carry: !!look.carry };
+            if (look.carry) arms.forEach((a, k) => { a.rotation.x = -1.25; a.rotation.z = (k ? -1 : 1) * 0.25; });
+            g.scale.setScalar(1.25 * (look.size || 1));
+            return g;
+        }
+        const _v = new THREE.Vector3();
+        // Animación del personaje: caminar, respirar, parpadear, mirarte y emociones exageradas
+        function animatePerson(o, t, moving, dt, patience) {
+            const R = o.rig; if (!R) return;
+            const ph = t * 0.0105 + (o.phase || 0);
+            R.walk += ((moving ? 1 : 0) - R.walk) * Math.min(1, dt * 8);
+            R.moodT += dt;
+            const w = R.walk, angry = R.mood === 'angry', happy = R.mood === 'happy';
+            const gait = angry ? 1.35 : 1;
+            const sw = Math.sin(ph * gait) * 0.8 * w;
+            R.legs[0].rotation.x = sw; R.legs[1].rotation.x = -sw;
+            let armX0 = -sw * 0.9, armX1 = sw * 0.9, armZ = 0.12;
+            let y = Math.abs(Math.cos(ph * gait)) * 0.07 * w + Math.sin(t * 0.0022 + ph) * 0.008 * (1 - w);
+            R.rig.rotation.z = Math.sin(ph * gait) * 0.06 * w;
+            R.rig.rotation.x = 0;
+            // Mirar al jugador
+            const cam = camera.getWorldPosition(_v); o.group.worldToLocal(cam);
+            let yaw = THREE.MathUtils.clamp(Math.atan2(cam.x, cam.z), -1.1, 1.1), pitch = 0;
+            let browA = 0, sad = false;
+            if (patience !== undefined && !moving) {
+                if (patience < 0.4) { // impaciente: zapatea y cruza los brazos
+                    R.legs[1].rotation.x = -Math.abs(Math.sin(t * 0.018)) * 0.35;
+                    armX0 = armX1 = -1.15; armZ = 0.75; browA = 0.35 * (1 - patience / 0.4) + 0.1; sad = true;
+                    R.rig.rotation.z = Math.sin(t * 0.004) * 0.04;
+                } else if (patience > 0.75) { // contento: se balancea
+                    R.rig.rotation.z = Math.sin(t * 0.003 + ph) * 0.05;
+                }
+            }
+            if (happy && R.moodT < 1.3) { // ¡salta de alegría con los brazos arriba!
+                const k = R.moodT / 1.3;
+                y += Math.abs(Math.sin(R.moodT * 10)) * 0.28 * (1 - k * 0.5);
+                armX0 = armX1 = 0; armZ = 2.5 + Math.sin(R.moodT * 20) * 0.25; yaw *= 0.3; pitch = -0.2;
+            } else if (happy) { // se va saludando
+                armX1 = 0; R.arms[1].rotation.z = 0; armZ = 0.12;
+                R.arms[1].rotation.z = -(2.3 + Math.sin(t * 0.02) * 0.4);
+            }
+            if (angry) { // pisotea, sacude la cabeza y se pone rojo
+                browA = 0.55; sad = true;
+                if (R.moodT < 1.0) { yaw = Math.sin(R.moodT * 26) * 0.5; armX0 = armX1 = -0.3; armZ = 0.5; }
+                R.skin.color.copy(R.skinBase).lerp(_c1.setHex(0xff5a4a), Math.min(1, R.moodT * 2) * 0.45);
+            }
+            if (!R.carry) {
+                R.arms[0].rotation.x = armX0; R.arms[0].rotation.z = armZ;
+                R.arms[1].rotation.x = armX1; if (!(happy && R.moodT >= 1.3)) R.arms[1].rotation.z = -armZ;
+            }
+            R.rig.position.y = y;
+            R.head.rotation.y += (yaw - R.head.rotation.y) * Math.min(1, dt * 6);
+            R.head.rotation.x += (pitch - R.head.rotation.x) * Math.min(1, dt * 6);
+            R.brows[0].rotation.z = -browA; R.brows[1].rotation.z = browA;
+            R.smile.visible = !sad; R.frown.visible = sad;
+            // Parpadeo
+            R.blink -= dt;
+            const closed = R.blink < 0.12; if (R.blink < 0) R.blink = 2 + Math.random() * 3.5;
+            R.eyes.forEach(e => e.scale.y = closed ? 0.15 : (happy && R.moodT < 1.3 ? 0.55 : 1.25));
+        }
+        const pickLook = () => ({ skin: pick([0xf3cfa5, 0xe8b48a, 0xc98c5f, 0x8d5a3b, 0xffdcb8]), shirt: pick([0x4cc9f0, 0xf72585, 0x8e5bd6, 0x3a86ff, 0x5fd38d, 0xffbe0b, 0xff7a45]), pants: pick([0x2a3f55, 0x3b3a52, 0x1d3557, 0x5a4636, 0x2f4f4f]), hair: pick([0x1b1b1b, 0x5a3825, 0xd4a017, 0x8b2e16, 0xe8e0d0]), style: pick(['short', 'bun', 'spiky', 'long', 'cap']), capCol: pick([0x264653, 0xe63946, 0x2a9d8f]), size: 0.9 + Math.random() * 0.2 });
+        const randLook = pickLook;
+        const queueCount = () => customers.filter(c => c.state === 'queue').length;
+        function spawnCustomer(startX, startZ) {
+            const r = pick(RECIPES);
+            const c = { recipe: r, state: 'queue', pmax: 70 + 20 * upg.pat, phase: Math.random() * 6 };
+            c.patience = c.pmax;
+            const g = makePerson(c, { type: 'CLIENT', customer: c }, randLook());
+            c.group = g;
+            c.bubble = makeBubble(r); c.bubble.position.set(0, 2.35, 0); c.bubble.visible = false; g.add(c.bubble);
+            c.barBg = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x111111, transparent: true, opacity: 0.55, depthTest: false, fog: false }));
+            c.barBg.scale.set(1.26, 0.13, 1); c.barBg.position.set(0, 2.86, 0); c.barBg.renderOrder = 10; c.barBg.visible = false; g.add(c.barBg);
+            c.bar = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x4caf50, depthTest: false, fog: false })); c.bar.scale.set(1.2, 0.08, 1); c.bar.position.set(0, 2.86, 0); c.bar.renderOrder = 11; c.bar.visible = false; g.add(c.bar);
+            g.rotation.y = -Math.PI / 2;
+            g.position.set(startX, 0, startZ);
+            scene.add(g); customers.push(c);
+        }
+        function fillQueue(initial) {
+            while (queueCount() < 3 + upg.space) { const n = queueCount(); spawnCustomer(initial ? 62 + n * 2.5 : 72, 58 + n * 1.5); }
+        }
+        const frontCustomer = () => customers.find(c => c.state === 'queue');
+        function custLabel(c) {
+            if (c.state !== 'queue') return 'Cliente';
+            return c === frontCustomer() ? `Entregar al cliente: ${c.recipe.n} 🍔` : 'Cliente esperando su turno';
+        }
+        function releaseCustomer(c, angry) {
+            c.state = 'leaving'; c.bubble.visible = false; c.bar.visible = false; c.barBg.visible = false;
+            c.meshes.forEach(m => { const k = interactableObjects.indexOf(m); if (k >= 0) interactableObjects.splice(k, 1); });
+            c.rig.mood = angry ? 'angry' : 'happy'; c.rig.moodT = 0;
+        }
+        function updateCustomers(delta, t) {
+            const q = customers.filter(c => c.state === 'queue');
+            for (let i = customers.length - 1; i >= 0; i--) {
+                const c = customers[i], g = c.group, qi = q.indexOf(c);
+                const tx = c.state === 'queue' ? CUST_X() + qi * 1.3 : 80;
+                const tz = c.state === 'queue' ? 50 + CUST_Z[1] * TRUCK_SCALE + qi * 2.0 : g.position.z;
+                const dx = tx - g.position.x, dz = tz - g.position.z, dist = Math.hypot(dx, dz);
+                // el cliente feliz celebra un momento antes de irse
+                const celebrating = c.state === 'leaving' && c.rig.mood === 'happy' && c.rig.moodT < 1.3;
+                let arrived = false, moving = false;
+                if (dist > 0.06 && !celebrating) {
+                    const st = Math.min(dist, (c.rig.mood === 'angry' ? 3.4 : 2.6) * delta);
+                    g.position.x += dx / dist * st; g.position.z += dz / dist * st;
+                    const ty = Math.atan2(dx, dz); let dy = ty - g.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+                    g.rotation.y += dy * Math.min(1, delta * 10); moving = true;
+                } else if (!celebrating) { arrived = true; if (c.state === 'queue') { let dy = -Math.PI / 2 - g.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); g.rotation.y += dy * Math.min(1, delta * 8); } }
+                g.position.y = 0;
+                let f;
+                if (c.state === 'queue') {
+                    const isFront = qi === 0 && arrived;
+                    c.bubble.visible = c.bar.visible = c.barBg.visible = isFront;
+                    if (isFront) {
+                        c.patience -= delta;
+                        f = Math.max(0, c.patience / c.pmax);
+                        const fs = Math.max(0.02, f);
+                        c.bar.scale.x = 1.2 * fs; c.bar.center.x = 0.5 / fs; c.bar.material.color.setHSL(f * 0.33, 0.9, 0.5);
+                        c.bubble.position.y = 2.35 + Math.sin(t * 0.004) * 0.03;
+                        if (c.patience <= 0) { rep = Math.max(0, rep - 0.5); showBannerNotification('😠 Un cliente se cansó de esperar y se fue.'); releaseCustomer(c, true); }
+                    }
+                } else if (g.position.x > 72) { scene.remove(g); customers.splice(i, 1); setTimeout(() => fillQueue(false), 2000); continue; }
+                animatePerson(c, t, moving, delta, f);
+            }
+        }
+        function serveCustomer(c) {
+            if (c.state !== 'queue') return;
+            if (c !== frontCustomer()) return showBannerNotification('⏳ Hay un cliente antes en la fila.');
+            const r = c.recipe;
+            if (burgerStack.length === 0) return showBannerNotification('🍽️ El plato está vacío. Arma la hamburguesa y toca al cliente.');
+            const ok = burgerStack.length === r.s.length && burgerStack.every((b, i) => b.type === r.s[i]);
+            if (!ok) return showBannerNotification(`❌ Esa no es la ${r.n}. Revisa la receta en la computadora.`);
+            while (plateGroup.children.length > 1) plateGroup.remove(plateGroup.children[1]);
+            burgerStack.length = 0; updateRecipeHUD();
+            const base = Math.round(r.p * (1 + 0.1 * upg.price)), tip = Math.round(r.p * 0.5 * Math.max(0, c.patience) / c.pmax);
+            earn(base + tip); rep = Math.min(5, rep + 0.2);
+            showBannerNotification(`😋 ¡Cliente feliz! ${r.n}: +$${base}${tip ? ` + $${tip} de propina` : ''}`);
+            releaseCustomer(c, false);
+        }
+
+        // --- Entrega de materiales: el repartidor llega afuera, por la puerta de atrás ---
+        function missingUnits() { return Object.keys(INGREDIENT_DEFS).reduce((a, t) => a + Math.max(0, MAX_STOCK - stockCount(t)), 0); }
+        function updateDelivery(delta, t) {
+            if (pendingDelivery) {
+                pendingDelivery.eta -= delta;
+                if (pendingDelivery.eta <= 0) {
+                    pendingDelivery = null;
+                    const o = { state: 'walking', phase: 0 };
+                    const g = makePerson(o, { type: 'DELIVERY' }, { skin: 0xe8b48a, shirt: 0xff6b00, pants: 0x263238, hair: 0x1b1b1b, style: 'cap', capCol: 0xff6b00, carry: true });
+                    // ✨ La caja va en las manos del repartidor (no flotando)
+                    const crateTex = makeTex('#b08455', c => { c.strokeStyle = '#7a5530'; c.lineWidth = 10; for (let y = 0; y < 256; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(256, y); c.stroke(); } c.strokeRect(5, 5, 246, 246); }, 1, 1, 256);
+                    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.32, 0.36), new THREE.MeshStandardMaterial({ map: crateTex, roughness: 0.85 }));
+                    crate.position.set(0, 0.86, 0.36); crate.castShadow = true; o.rig.rig.add(crate);
+                    [[0xe63946, -0.13], [0x52b788, 0.0], [0xffb703, 0.13]].forEach(([col, x]) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), toon(col)); p.position.set(x, 0.2, 0); crate.add(p); });
+                    crate.userData = { type: 'DELIVERY' }; interactableObjects.push(crate); o.meshes.push(crate);
+                    o.meshes[0].userData = { type: 'DELIVERY' };
+                    g.position.set(58, 0, 74); scene.add(g); o.group = g; delivery = o;
+                    showBannerNotification('🚚 ¡Llegó tu pedido! Sal por la puerta de atrás del truck a recibirlo.');
+                }
+            }
+            if (delivery) {
+                let moving = false;
+                if (delivery.state === 'walking') {
+                    const g = delivery.group, dx = 50 - g.position.x, dz = 58.6 + truckExt * TRUCK_SCALE - g.position.z, d = Math.hypot(dx, dz);
+                    if (d > 0.06) { const st = Math.min(d, 2.6 * delta); g.position.x += dx / d * st; g.position.z += dz / d * st; g.rotation.y = Math.atan2(dx, dz); moving = true; }
+                    else { g.rotation.y = Math.PI; delivery.state = 'ready'; }
+                }
+                animatePerson(delivery, t, moving, delta);
+            }
+        }
+        function collectDelivery() {
+            if (!delivery) return;
+            if (delivery.state !== 'ready') return showBannerNotification('🚚 El repartidor ya casi llega...');
+            const a = restockAll();
+            scene.remove(delivery.group);
+            delivery.meshes.forEach(m => { const k = interactableObjects.indexOf(m); if (k >= 0) interactableObjects.splice(k, 1); });
+            delivery = null;
+            showBannerNotification(`📦 Materiales recibidos (+${a} unidades).`);
+        }
+
+        // --- Tycoon: reloj, día y HUD ---
+        function drawClock() {
+            if (!clockCv) return;
+            const c = clockCv.getContext('2d'), tot = CLOCK_START + gameMin;
+            c.clearRect(0, 0, 256, 256);
+            c.fillStyle = '#fffdf5'; c.beginPath(); c.arc(128, 128, 122, 0, 7); c.fill(); c.strokeStyle = '#222'; c.lineWidth = 10; c.stroke();
+            c.fillStyle = '#222'; c.font = 'bold 26px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+            for (let h = 1; h <= 12; h++) { const a = h / 12 * Math.PI * 2; c.fillText(h, 128 + Math.sin(a) * 96, 128 - Math.cos(a) * 96); }
+            const hand = (a, len, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(128, 128); c.lineTo(128 + Math.sin(a) * len, 128 - Math.cos(a) * len); c.stroke(); };
+            hand((tot / 60 % 12) / 12 * Math.PI * 2, 58, 10, '#222'); hand((tot % 60) / 60 * Math.PI * 2, 88, 6, '#444');
+            c.fillStyle = '#c1121f'; c.beginPath(); c.arc(128, 128, 8, 0, 7); c.fill();
+            c.fillStyle = '#222'; c.font = 'bold 24px sans-serif'; c.fillText(fmtTime(gameMin), 128, 178);
+            clockTex.needsUpdate = true;
+        }
+        const hudCache = {};
+        function setHud(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).innerText = v; } }
+        function updateTycoon(delta) {
+            const hud = document.getElementById('tycoon-hud');
+            const show = currentScene === 'FOOD_TRUCK' && !isWakingUp;
+            hud.classList.toggle('hidden', !show);
+            if (currentScene !== 'FOOD_TRUCK') return;
+            if (!isShiftPromptActive) gameMin += Math.min(delta, 0.25) * 15 / 60;
+            if (gameMin >= DAY_LENGTH) {
+                showBannerNotification(`🌙 Fin del día ${day}: ganaste $${dayEarned}. ¡Empieza el día ${day + 1}!`);
+                day++; gameMin = 0; dayEarned = 0;
+            }
+            setTimeOfDay(17 + gameMin / 60); // ✨ el cielo y las luces siguen al reloj
+            const m = Math.floor(gameMin);
+            if (m !== lastClockMin) { lastClockMin = m; drawClock(); }
+            setHud('th-money', '$' + money); setHud('th-today', '$' + dayEarned); setHud('th-time', fmtTime(gameMin));
+            setHud('th-day', String(day)); setHud('th-rep', rep.toFixed(1));
+        }
+        function updateTruckDoor(delta) {
+            if (!truckDoor) return;
+            const p = controls.getObject().position;
+            const near = currentScene === 'FOOD_TRUCK' && Math.hypot(p.x - 50, p.z - (50 + (2.75 + truckExt) * TRUCK_SCALE)) < 4.2;
+            truckDoorOpen += ((near ? 1 : 0) - truckDoorOpen) * Math.min(1, delta * 4);
+            truckDoor.rotation.y = -truckDoorOpen * Math.PI / 2 * 0.95;
+        }
+
+        function buildTruckSurroundings() {
+            const add = (m, x, y, z) => { m.position.set(x, y, z); scene.add(m); return m; };
+            const mat = (col, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.8 }, o));
+            // Pasto y pavimento
+            const gt = makeTex('#2c5233', (c, n) => blots(c, 500, n, () => `hsla(${95 + rr_(0, 40)},45%,${18 + rr_(0, 16)}%,0.6)`, 2, 6), 60, 60);
+            const lawn = add(new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: gt, roughness: 1 })), 50, -0.02, 50);
+            lawn.rotation.x = -Math.PI / 2; lawn.receiveShadow = true;
+            const pt = makeTex('#6b6f73', (c, n) => { c.strokeStyle = '#4b4f53'; c.lineWidth = 3; for (let i = 0; i <= n; i += 64) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, n); c.stroke(); c.beginPath(); c.moveTo(0, i); c.lineTo(n, i); c.stroke(); } speckle(c, 1500, n, '0,0,0', 0.15); }, 10, 8);
+            const pave = add(new THREE.Mesh(new THREE.PlaneGeometry(20, 16), new THREE.MeshStandardMaterial({ map: pt, roughness: 0.9 })), 60, 0.01, 50);
+            pave.rotation.x = -Math.PI / 2; pave.receiveShadow = true;
+            // Rótulo en el techo (✨ ahora brilla de noche)
+            const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256;
+            const c2 = cv.getContext('2d');
+            c2.fillStyle = '#b5121b'; c2.fillRect(0, 0, 1024, 256); c2.strokeStyle = '#ffd166'; c2.lineWidth = 12; c2.strokeRect(10, 10, 1004, 236);
+            c2.fillStyle = '#ffd166'; c2.font = 'bold 120px Fredoka, sans-serif'; c2.textAlign = 'center'; c2.textBaseline = 'middle'; c2.fillText('🍔 BURGER TRUCK', 512, 135);
+            const signMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) });
+            const sign = add(new THREE.Mesh(new THREE.PlaneGeometry(6, 1.5), signMat), 52.95, 6.9, 50);
+            sign.rotation.y = Math.PI / 2;
+            lampMats.push({ mat: signMat, basic: true, min: 0.85, max: 2.6 });
+            const signBack = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.6, 6.15), mat(0x2a2a30, { roughness: 0.5 })), 52.78, 6.9, 50);
+            // Pizarra con el menú
+            const board = makeTex('#1f3b2d', (c, n) => {
+                c.fillStyle = '#f5f5dc'; c.textAlign = 'center'; c.font = 'bold 38px Fredoka, sans-serif'; c.fillText('MENÚ', 128, 52);
+                c.font = '24px sans-serif';
+                RECIPES.forEach((r, i) => { c.textAlign = 'left'; c.fillText(r.n, 30, 105 + i * 45); c.textAlign = 'right'; c.fillText('$' + r.p, 226, 105 + i * 45); });
+            }, 1, 1, 256);
+            const bd = add(new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ map: board, roughness: 0.9 })), 55.6, 1.5, 46.6);
+            bd.rotation.y = -Math.PI / 2;
+            add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.5), mat(0x6d4c41)), 55.7, 1.4, 46.6);
+            // Mesas con sombrilla
+            [[59, 45], [59, 55.5]].forEach(([x, z], i) => {
+                const top = add(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.07, 24), mat(0x8d6e63)), x, 1.1, z); top.castShadow = top.receiveShadow = true;
+                add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.1, 8), mat(0x37474f)), x, 0.55, z).castShadow = true;
+                [[-1.3, 0], [1.3, 0]].forEach(([dx, dz]) => add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16), mat(0xe76f51)), x + dx, 0.7, z + dz).castShadow = true);
+                add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 8), mat(0xeeeeee)), x, 2.3, z);
+                add(new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.7, 16), mat(i ? 0x2a9d8f : 0xf4a261)), x, 3.6, z).castShadow = true;
+            });
+            // Guirnalda de luces con curva (✨ brillan con bloom al anochecer)
+            const bulbMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffc65e, emissiveIntensity: 1.6 });
+            lampMats.push({ mat: bulbMat, min: 0.25, max: 7 });
+            const wire = [];
+            for (let i = 0; i <= 16; i++) {
+                const z = 42 + i * 1.0, sag = Math.sin(i / 16 * Math.PI) * 0.7;
+                add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), bulbMat), 57, 4.4 - sag, z);
+                wire.push(new THREE.Vector3(57, 4.5 - sag, z));
+            }
+            add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wire), 40, 0.012, 4), mat(0x222222)), 0, 0, 0);
+            [42, 58].forEach(z => add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 4.6, 8), mat(0x37474f)), 57, 2.3, z));
+            const stringGlow = new THREE.PointLight(0xffc06a, 1.2, 9); stringGlow.position.set(57, 3.6, 50); scene.add(stringGlow);
+            truckLights.push(stringGlow); lampLights.push({ light: stringGlow, base: 1.2 });
+            // Árboles más naturales: varias copas, tamaños y tonos distintos
+            const treeCols = [0x2e6b34, 0x3b7d3a, 0x2a5e3a, 0x4a8a3f];
+            [[64, 44], [65, 56], [63, 50.5], [67.5, 48], [70, 53], [69, 42.5]].forEach(([x, z], k) => {
+                const s = 0.85 + (k % 3) * 0.15;
+                const trunk = add(new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.26 * s, 2.4 * s, 8), mat(0x5d4037)), x, 1.2 * s, z); trunk.castShadow = true;
+                for (let j = 0; j < 4; j++) {
+                    const r = (1.0 + Math.random() * 0.6) * s;
+                    const leaf = add(new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat(treeCols[(k + j) % 4], { roughness: 0.9, flatShading: true })), x + rr_(-0.7, 0.7) * s, (2.9 + j * 0.5 + rr_(0, 0.4)) * s, z + rr_(-0.7, 0.7) * s);
+                    leaf.castShadow = true; leaf.receiveShadow = true;
+                }
+            });
+            [[55.4, 53.6], [55.4, 47.2]].forEach(([x, z]) => {
+                add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.22, 0.5, 12), mat(0xb5651d)), x, 0.25, z);
+                add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.36, 1), mat(0x43a047, { flatShading: true })), x, 0.75, z);
+            });
+            add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.9, 12), mat(0x455a64)), 55.4, 0.45, 56.2);
+            // Edificios de fondo con ventanas encendidas (✨ se encienden al anochecer)
+            const wt = makeTex('#1c2733', (c, n) => { for (let y = 8; y < n; y += 32) for (let x = 8; x < n; x += 32) { c.fillStyle = Math.random() > 0.45 ? '#ffd88a' : '#26364a'; c.fillRect(x, y, 16, 20); } }, 3, 3, 256);
+            const bMat = new THREE.MeshStandardMaterial({ map: wt, emissiveMap: wt, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.9 });
+            lampMats.push({ mat: bMat, min: 0.08, max: 1.5 });
+            [[82, 30, 9, 12], [84, 41, 7, 18], [83, 52, 10, 14], [85, 63, 8, 20], [82, 73, 9, 11]].forEach(([x, z, w, h]) => {
+                add(new THREE.Mesh(new THREE.BoxGeometry(6, h, w), bMat), x, h / 2, z);
+                add(new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.4, w + 0.3), mat(0x151c24)), x, h + 0.2, z);
+            });
+            // Farola que ilumina a los clientes
+            const lampHeadMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffd45e, emissiveIntensity: 1.8 });
+            lampMats.push({ mat: lampHeadMat, min: 0.2, max: 8 });
+            add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 5, 8), mat(0x263238)), 56.5, 2.5, 50);
+            add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), lampHeadMat), 56.5, 5.1, 50);
+            const lamp = new THREE.PointLight(0xffd79a, 1.8, 22); lamp.position.set(56.5, 4.8, 50); scene.add(lamp);
+            truckLights.push(lamp); lampLights.push({ light: lamp, base: 1.8 });
+            // Calle detrás del truck (zona de recibir materiales)
+            const pave2 = add(new THREE.Mesh(new THREE.PlaneGeometry(36, 18), new THREE.MeshStandardMaterial({ map: pt, roughness: 0.9 })), 55, 0.011, 65);
+            pave2.rotation.x = -Math.PI / 2; pave2.receiveShadow = true;
+            const road = add(new THREE.Mesh(new THREE.PlaneGeometry(60, 8), new THREE.MeshStandardMaterial({ color: 0x2b2d31, roughness: 0.95 })), 55, 0.012, 78);
+            road.rotation.x = -Math.PI / 2; road.receiveShadow = true;
+            for (let x = 30; x < 80; x += 4) { const l = add(new THREE.Mesh(new THREE.PlaneGeometry(2, 0.2), new THREE.MeshBasicMaterial({ color: 0xffd166 })), x, 0.02, 78); l.rotation.x = -Math.PI / 2; }
+            const lamp2 = new THREE.PointLight(0xffd79a, 1.5, 20); lamp2.position.set(48, 4.5, 62); scene.add(lamp2);
+            truckLights.push(lamp2); lampLights.push({ light: lamp2, base: 1.5 });
+            add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 4.6, 8), mat(0x263238)), 47, 2.3, 62);
+            add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), lampHeadMat), 47.4, 4.65, 62);
+            // Reloj de pared dentro del truck (muestra la hora del juego)
+            clockCv = document.createElement('canvas'); clockCv.width = clockCv.height = 256;
+            clockTex = new THREE.CanvasTexture(clockCv); drawClock();
+            add(new THREE.Mesh(new THREE.CircleGeometry(0.6, 32), new THREE.MeshBasicMaterial({ map: clockTex, transparent: true })), 51.6, 3.9, 44.62);
+            // Cartel de salida sobre la puerta de atrás
+            const ex = document.createElement('canvas'); ex.width = 256; ex.height = 96;
+            const ec = ex.getContext('2d'); ec.fillStyle = '#0b7a3b'; ec.fillRect(0, 0, 256, 96); ec.fillStyle = '#fff'; ec.font = 'bold 54px Fredoka, sans-serif'; ec.textAlign = 'center'; ec.textBaseline = 'middle'; ec.fillText('🚪 SALIDA', 128, 52);
+            const exit_ = add(new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ex), color: new THREE.Color(1.5, 1.5, 1.5) })), 50, 4.25, 55.36);
+            exit_.rotation.y = Math.PI;
+        }
+
+        // ✨ NUEVO: carrocería exterior del food truck (antes solo existían las paredes de adentro)
+        function buildTruckExterior() {
+            const G = foodTruckGroup;
+            const paint = shiny(new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.35, metalness: 0.15 }), 0.7);
+            const cream = shiny(new THREE.MeshStandardMaterial({ color: 0xf6ead2, roughness: 0.4, metalness: 0.1 }), 0.55);
+            const chrome = shiny(new THREE.MeshStandardMaterial({ color: 0xdfe4e8, roughness: 0.18, metalness: 0.9 }), 1.2);
+            const dark = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.7 });
+            const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+            const box = (w, h, d, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; G.add(b); return b; };
+            const TOP = 2.5 + TRUCK_EXTRA_H + 0.05, X = 1.42, Z = 2.82, T = 0.04;
+            // Lado trasero (sin ventana): rojo abajo, franja blanca, crema arriba
+            box(T, 0.95, 2 * Z, -X, 0.475, 0, paint); box(T + 0.01, 0.08, 2 * Z, -X, 0.99, 0, white); box(T, TOP - 1.03, 2 * Z, -X, 1.03 + (TOP - 1.03) / 2, 0, cream);
+            // Lado de la ventanilla de servicio
+            box(T, 0.95, 2 * Z, X, 0.475, 0, paint); box(T + 0.01, 0.08, 2 * Z, X, 0.99, 0, white);
+            box(T, TOP - 2.0, 2 * Z, X, 2.0 + (TOP - 2.0) / 2, 0, cream);
+            box(0.22, 0.03, 2 * Z - 0.1, X + 0.1, 1.0, 0, chrome);         // repisa de acero afuera
+            box(0.05, 0.04, 2 * Z, X + 0.01, 2.0, 0, chrome);               // marco superior
+            [-Z + 0.02, Z - 0.02].forEach(z => box(0.05, 1.0, 0.04, X + 0.01, 1.5, z, chrome));
+            // Frente (cabina del conductor)
+            box(2 * X, 0.95, T, 0, 0.475, -Z, paint); box(2 * X, 0.08, T + 0.01, 0, 0.99, -Z, white); box(2 * X, TOP - 1.03, T, 0, 1.03 + (TOP - 1.03) / 2, -Z, cream);
+            box(2 * X - 0.1, 1.2, 1.25, 0, 0.6, -Z - 0.64, paint);                         // cofre / cabina baja
+            const cab = box(2 * X - 0.1, 0.95, 0.9, 0, 1.65, -Z - 0.45, cream);             // techo de cabina
+            const glass = shiny(new THREE.MeshStandardMaterial({ color: 0x1e2a38, roughness: 0.05, metalness: 0.6 }), 1.4);
+            const ws = new THREE.Mesh(new THREE.PlaneGeometry(2 * X - 0.3, 0.75), glass); ws.position.set(0, 1.62, -Z - 0.91); ws.rotation.set(-0.25, Math.PI, 0); G.add(ws);
+            box(2 * X - 0.05, 0.12, 0.12, 0, 0.22, -Z - 1.3, chrome);                     // parachoques
+            box(1.2, 0.35, 0.02, 0, 0.62, -Z - 1.275, chrome);                             // parrilla
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfffbe8, emissive: 0xfff2c8, emissiveIntensity: 0.4 });
+            lampMats.push({ mat: headMat, min: 0.3, max: 5 });
+            [-1, 1].forEach(s => { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.04, 16), headMat); h.rotation.x = Math.PI / 2; h.position.set(s * 0.95, 0.68, -Z - 1.28); G.add(h); });
+            // Parte de atrás con hueco para la puerta
+            [[-0.96, 0.92], [0.96, 0.92]].forEach(([x, w]) => { box(w, 0.95, T, x, 0.475, Z, paint); box(w, 0.08, T + 0.01, x, 0.99, Z, white); box(w, TOP - 1.03, T, x, 1.03 + (TOP - 1.03) / 2, Z, cream); });
+            box(1.0, TOP - 2.1, T, 0, 2.1 + (TOP - 2.1) / 2, Z, cream);
+            [-1, 1].forEach(s => { const tl = box(0.12, 0.2, 0.03, s * 1.25, 0.7, Z + 0.02, new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff1a1a, emissiveIntensity: 3 })); tl.castShadow = false; });
+            // Techo con borde y aire acondicionado
+            box(2 * X + 0.08, 0.07, 2 * Z + 0.08, 0, TOP + 0.035, 0, white);
+            box(0.9, 0.22, 1.1, -0.4, TOP + 0.18, 1.2, chrome);
+            // Ruedas con aros cromados y faldón oscuro
+            box(2 * X + 0.01, 0.12, 2 * Z + 0.01, 0, 0.06, 0, dark);
+            const tire = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 });
+            [[-X, -1.7], [-X, 1.7], [X, -1.7], [X, 1.7]].forEach(([x, z]) => {
+                const s = Math.sign(x);
+                const t = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.2, 20), tire); t.rotation.z = Math.PI / 2; t.position.set(x + s * 0.09, 0.2, z); t.castShadow = true; G.add(t);
+                const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.21, 16), chrome); hub.rotation.z = Math.PI / 2; hub.position.copy(t.position); G.add(hub);
+            });
+            // Logo redondo de hamburguesa en el lado trasero
+            const lc = document.createElement('canvas'); lc.width = lc.height = 256; const l = lc.getContext('2d');
+            l.fillStyle = '#ffd166'; l.beginPath(); l.arc(128, 128, 120, 0, 7); l.fill(); l.lineWidth = 10; l.strokeStyle = '#b5121b'; l.stroke();
+            l.font = '120px sans-serif'; l.textAlign = 'center'; l.textBaseline = 'middle'; l.fillText('🍔', 128, 118);
+            l.fillStyle = '#b5121b'; l.font = 'bold 30px Fredoka, sans-serif'; l.fillText('DESDE 2026', 128, 205);
+            const logo = new THREE.Mesh(new THREE.CircleGeometry(0.75, 40), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(lc), transparent: true, roughness: 0.4 }));
+            logo.position.set(-X - 0.03, 2.1, 0); logo.rotation.y = -Math.PI / 2; G.add(logo);
+            // Tira de foquitos bajo el toldo
+            const ledMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffc65e, emissiveIntensity: 1 });
+            lampMats.push({ mat: ledMat, min: 0.3, max: 7 });
+            for (let i = 0; i < 12; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), ledMat); b.position.set(2.45, 1.87, -1.6 + i * 0.29); G.add(b); }
+        }
+
+        function updateDoor(delta) {
+            if (!doorL) return;
+            const p = controls.getObject().position;
+            const near = currentScene === 'HOME' && Math.hypot(p.x, p.z - 5) < 3.6;
+            doorOpen += ((near ? 1 : 0) - doorOpen) * Math.min(1, delta * 4);
+            const a = doorOpen * Math.PI / 2 * 0.95;
+            doorL.rotation.y = -a; doorR.rotation.y = a;
+        }
+
+        // --- COMPUTADORA: escritorio con apps ---
+        let isPCOpen = false, pcKeys = null, snakeTimer = null, money = 50, nextOrderId = 1;
+        const LBL = { PAN_ABAJO: 'Pan base', CARNE_COCINADA: 'Carne cocinada', QUESO: 'Queso', LECHUGA: 'Lechuga', TOMATE: 'Tomate', PAN_ARRIBA: 'Pan tapa' };
+        const RECIPES = [
+            { n: 'Clásica', p: 12, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] },
+            { n: 'Completa', p: 18, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
+            { n: 'Vegetal', p: 10, s: ['PAN_ABAJO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
+            { n: 'Doble', p: 24, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] }
+        ];
+        const CLIENTES = ['Camila R.', 'Andrés P.', 'Laura G.', 'Santiago M.', 'Valentina T.', 'Mateo L.'];
+        const CALLES = ['Cra 7 #45-12', 'Calle 80 #20-31', 'Av. 68 #12-05', 'Cra 15 #93-40', 'Calle 26 #50-18'];
+        const pick = a => a[Math.floor(Math.random() * a.length)];
+        const newOrder = () => ({ id: nextOrderId++, cliente: pick(CLIENTES), dir: pick(CALLES), r: pick(RECIPES) });
+        let orders = [newOrder(), newOrder(), newOrder()];
+        const pcBody = document.getElementById('pc-body');
+        const btnCls = 'px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-semibold';
+
+        function openPC() {
+            isPCOpen = true;
+            if (controls.isLocked) controls.unlock();
+            document.getElementById('pc-overlay').classList.remove('hidden');
+            document.getElementById('crosshair').classList.add('hidden');
+            document.getElementById('interaction-prompt').classList.add('hidden');
+            openApp('home');
+        }
+        function closePC() {
+            stopSnake(); pcKeys = null; isPCOpen = false;
+            moveForward = moveBackward = moveLeft = moveRight = false;
+            document.getElementById('pc-overlay').classList.add('hidden');
+            updateComputerScreen();
+            document.getElementById('crosshair').classList.remove('hidden');
+            if (!IS_TOUCH) safeLock();
+        }
+        function pinRecipe(name) { pinnedRecipe = RECIPES.find(r => r.n === name); updateRecipeHUD(); }
+        function updateRecipeHUD() {
+            const hud = document.getElementById('recipe-hud');
+            if (!pinnedRecipe) { hud.classList.add('hidden'); return; }
+            hud.classList.remove('hidden');
+            document.getElementById('rh-title').innerText = '🍔 ' + pinnedRecipe.n;
+            let bad = false, html = '';
+            pinnedRecipe.s.forEach((t, i) => {
+                let ic = '⬜', cls = 'text-gray-300';
+                if (i < burgerStack.length) {
+                    if (!bad && burgerStack[i].type === t) { ic = '✅'; cls = 'text-green-300'; }
+                    else { bad = true; ic = '❌'; cls = 'text-red-300'; }
+                } else if (i === burgerStack.length && !bad) { ic = '👉'; cls = 'text-amber-300 font-bold'; }
+                html += `<li class="${cls}">${ic} ${i + 1}. ${LBL[t]}</li>`;
+            });
+            document.getElementById('rh-list').innerHTML = html;
+        }
+        document.getElementById('rh-close').addEventListener('click', (e) => { e.stopPropagation(); pinnedRecipe = null; updateRecipeHUD(); });
+        function stopSnake() { clearTimeout(snakeTimer); snakeTimer = null; }
+        function openApp(name) {
+            stopSnake(); pcKeys = null;
+            document.getElementById('pc-money').innerText = '$' + money;
+            if (name === 'snake') return startSnake();
+            if (name === 'entrega') return renderEntrega();
+            if (name === 'mejoras') return renderMejoras();
+            if (name === 'recetas') return renderRecetas();
+            if (name === 'pedidos') return renderPedidos();
+            const app = (id, ico, txt) => `<button onclick="openApp('${id}')" class="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-white/10"><span class="text-5xl">${ico}</span><span>${txt}</span></button>`;
+            pcBody.innerHTML = `<p class="text-sky-200 mb-4">Escritorio</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-3">${app('snake', '🐍', 'Snake')}${app('entrega', '📦', 'Entrega')}${app('recetas', '📖', 'Recetas')}${app('pedidos', '🛵', 'Pedidos')}${app('mejoras', '🛒', 'Mejoras')}</div>`;
+        }
+        function renderEntrega(msg = '') {
+            const rows = Object.keys(INGREDIENT_DEFS).map(t => {
+                const n = stockCount(t);
+                return `<div class="flex justify-between border-b border-white/10 py-1"><span>${INGREDIENT_DEFS[t].label}</span><b class="${n === 0 ? 'text-red-400' : 'text-green-300'}">${n}/${MAX_STOCK}</b></div>`;
+            }).join('');
+            const miss = missingUnits(), cost = miss * 2;
+            const st = pendingDelivery ? `🚚 Pedido en camino (${Math.ceil(pendingDelivery.eta)} s)` : delivery ? '📦 El repartidor te espera afuera, por la puerta de atrás.' : '';
+            pcBody.innerHTML = `<h2 class="text-lg font-bold mb-2">📦 Entrega de materiales</h2>${rows}<p class="mt-3 text-gray-300">Faltan <b>${miss}</b> unidades · $2 cada una</p><button onclick="doOrder()" class="${btnCls} mt-2">Pedir materiales ($${cost})</button><p class="mt-3 text-amber-200">${msg || st}</p>`;
+        }
+        function doOrder() {
+            const miss = missingUnits(), cost = miss * 2;
+            if (pendingDelivery || delivery) return renderEntrega('Ya hay un pedido en camino o esperándote afuera.');
+            if (miss === 0) return renderEntrega('El inventario ya está completo.');
+            if (money < cost) return renderEntrega(`💸 No te alcanza el dinero ($${cost}).`);
+            money -= cost; document.getElementById('pc-money').innerText = '$' + money;
+            pendingDelivery = { eta: 20 };
+            renderEntrega('🚚 Pedido en camino (~20 s). Cuando llegue, sal por la puerta de atrás del truck a recibirlo.');
+        }
+        function renderMejoras(msg = '') {
+            pcBody.innerHTML = '<h2 class="text-lg font-bold mb-2">🛒 Mejoras del negocio</h2>' + Object.keys(UPG).map(k => {
+                const u = UPG[k], lv = upg[k], cost = u.base * (lv + 1), maxed = lv >= u.max;
+                return `<div class="flex items-center justify-between bg-black/30 rounded-lg p-3 mb-2"><div><b>${u.n}</b> <span class="text-gray-400">nivel ${lv}/${u.max}</span><br><span class="text-gray-300">${u.d}</span></div><button onclick="buyUpgrade('${k}')" class="${btnCls} ml-2 shrink-0" ${maxed ? 'disabled style="opacity:.5"' : ''}>${maxed ? 'MAX' : '$' + cost}</button></div>`;
+            }).join('') + `<p class="mt-2 text-amber-200">${msg}</p>`;
+        }
+        function buyUpgrade(k) {
+            const u = UPG[k], lv = upg[k], cost = u.base * (lv + 1);
+            if (lv >= u.max) return;
+            if (money < cost) return renderMejoras(`💸 Te faltan $${cost - money}.`);
+            money -= cost; upg[k]++;
+            if (k === 'inv') { MAX_STOCK++; updateComputerScreen(); }
+            if (k === 'space') { applyTruckExt(); fillQueue(false); showBannerNotification('🚚 ¡Tu food truck ahora es más grande!'); }
+            document.getElementById('pc-money').innerText = '$' + money;
+            renderMejoras(`✅ Compraste ${u.n}.`);
+        }
+        function renderRecetas() {
+            pcBody.innerHTML = '<h2 class="text-lg font-bold mb-2">📖 Recetas (de abajo hacia arriba)</h2>' + RECIPES.map(r =>
+                `<div class="mb-3 bg-black/30 rounded-lg p-3"><b class="text-amber-300">${r.n}</b> · $${r.p}<ol class="list-decimal ml-5 text-gray-200">${r.s.map(x => `<li>${LBL[x]}</li>`).join('')}</ol><button onclick="pinRecipe('${r.n}');this.innerText='✅ En pantalla'" class="${btnCls} mt-2 text-xs">📌 Poner en pantalla</button></div>`).join('');
+        }
+        function renderPedidos(msg = '') {
+            pcBody.innerHTML = `<h2 class="text-lg font-bold mb-1">🛵 Pedidos a domicilio</h2><p class="text-gray-300 mb-3">Arma la hamburguesa en el plato del mostrador y pulsa Entregar.</p>` + orders.map(o =>
+                `<div class="flex items-center justify-between bg-black/30 rounded-lg p-3 mb-2"><div><b>${o.cliente}</b> · ${o.dir}<br><span class="text-amber-300">${o.r.n}</span> <span class="text-gray-400">(${o.r.s.map(x => LBL[x]).join(' → ')})</span></div><span class="ml-2 shrink-0 flex flex-col gap-1"><button onclick="deliverOrder(${o.id})" class="${btnCls}">Entregar $${o.r.p}</button><button onclick="pinRecipe('${o.r.n}');this.innerText='✅ En pantalla'" class="px-2 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs">📌 Ver receta</button></span></div>`).join('') + `<p class="mt-2 text-amber-200">${msg}</p>`;
+        }
+        function deliverOrder(id) {
+            const o = orders.find(x => x.id === id); if (!o) return;
+            if (burgerStack.length === 0) return renderPedidos('❌ El plato está vacío. Arma la hamburguesa en el mostrador.');
+            const ok = burgerStack.length === o.r.s.length && burgerStack.every((b, i) => b.type === o.r.s[i]);
+            if (!ok) return renderPedidos(`❌ El plato no coincide con la receta ${o.r.n}. Revisa el orden en Recetas.`);
+            while (plateGroup.children.length > 1) plateGroup.remove(plateGroup.children[1]);
+            burgerStack.length = 0; updateRecipeHUD();
+            orders = orders.filter(x => x.id !== id); orders.push(newOrder());
+            earn(o.r.p);
+            document.getElementById('pc-money').innerText = '$' + money;
+            renderPedidos(`✅ Pedido entregado a ${o.cliente} (+$${o.r.p}).`);
+        }
+        let snakeBest = 0;
+        function startSnake() {
+            const dbtn = [['◀', -1, 0], ['▲', 0, -1], ['▼', 0, 1], ['▶', 1, 0]].map(d => `<button data-d="${d[1]},${d[2]}" class="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded text-lg">${d[0]}</button>`).join('');
+            pcBody.innerHTML = `<div class="flex flex-col items-center gap-2"><div class="flex gap-5 text-sm"><span>🐍 Puntos: <b id="sn-score">0</b></span><span>🏆 Récord: <b id="sn-best">${snakeBest}</b></span><span>⚡ Nivel: <b id="sn-lvl">1</b></span></div><canvas id="sn" width="400" height="400" class="border-2 border-lime-400 rounded" style="max-width:100%;height:auto"></canvas><div class="text-xs text-gray-300">Flechas/WASD · Espacio: pausa · R: reiniciar · 🟡 bonus +5 (dura poco)</div><div class="flex gap-1">${dbtn}</div></div>`;
+            const c = document.getElementById('sn').getContext('2d'), N = 20, S = 20;
+            let snake, dir, q, food, bonus, score, over, paused, started, ac;
+            const rnd = () => Math.floor(Math.random() * N);
+            const spot = () => { let p; do { p = { x: rnd(), y: rnd() }; } while (snake.some(t => t.x === p.x && t.y === p.y) || (food && p.x === food.x && p.y === food.y) || (bonus && p.x === bonus.x && p.y === bonus.y)); return p; };
+            const beep = (f) => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.05; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.08); } catch (e) { } };
+            const rr = (x, y, w, h, r, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.fill(); };
+            const hud = () => {
+                document.getElementById('sn-score').innerText = score;
+                document.getElementById('sn-best').innerText = snakeBest;
+                document.getElementById('sn-lvl').innerText = 1 + Math.floor(score / 5);
+            };
+            const msg = (t, sub) => {
+                c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(0, 130, 400, 140);
+                c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 30px sans-serif'; c.fillText(t, 200, 190);
+                c.font = '16px sans-serif'; c.fillStyle = '#d9f99d'; c.fillText(sub, 200, 225);
+            };
+            const draw = () => {
+                for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { c.fillStyle = (x + y) % 2 ? '#0f1b2d' : '#132238'; c.fillRect(x * S, y * S, S, S); }
+                // manzana
+                c.fillStyle = '#ef4444'; c.beginPath(); c.arc(food.x * S + 10, food.y * S + 11, 7, 0, 7); c.fill();
+                c.fillStyle = '#4ade80'; c.fillRect(food.x * S + 10, food.y * S + 1, 3, 5);
+                // bonus dorado (parpadea al acabarse)
+                if (bonus && (bonus.t > 15 || bonus.t % 2)) {
+                    c.fillStyle = '#facc15'; c.beginPath(); c.arc(bonus.x * S + 10, bonus.y * S + 10, 8, 0, 7); c.fill();
+                    c.fillStyle = '#fff7ae'; c.beginPath(); c.arc(bonus.x * S + 7, bonus.y * S + 7, 2.5, 0, 7); c.fill();
+                }
+                // serpiente con degradado, cabeza con ojos
+                for (let i = snake.length - 1; i >= 0; i--) {
+                    const t = snake[i];
+                    rr(t.x * S + 1, t.y * S + 1, S - 2, S - 2, i ? 5 : 8, i ? `hsl(115,65%,${Math.max(28, 52 - i * 1.1)}%)` : '#bef264');
+                }
+                const h = snake[0], cx = h.x * S + 10, cy = h.y * S + 10;
+                c.fillStyle = '#111';
+                [-1, 1].forEach(k => { c.beginPath(); c.arc(cx + dir.x * 4 - dir.y * 4 * k, cy + dir.y * 4 + dir.x * 4 * k, 2.2, 0, 7); c.fill(); });
+                if (over) msg('Fin del juego', `Puntos: ${score} · R para reiniciar`);
+                else if (!started) msg('🐍 Snake', 'Pulsa una flecha o Espacio para empezar');
+                else if (paused) msg('Pausa', 'Espacio para continuar');
+            };
+            const reset = () => {
+                snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+                dir = { x: 1, y: 0 }; q = []; score = 0; over = paused = started = false; bonus = null; food = null;
+                food = spot(); hud(); draw();
+            };
+            const tick = () => {
+                if (!started || paused || over) return;
+                if (q.length) dir = q.shift();
+                const h = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+                if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || snake.slice(0, -1).some(t => t.x === h.x && t.y === h.y)) {
+                    over = true; snakeBest = Math.max(snakeBest, score); beep(110); hud(); draw(); return;
+                }
+                snake.unshift(h);
+                let ate = false;
+                if (h.x === food.x && h.y === food.y) { score++; ate = true; beep(600); food = spot(); if (!bonus && score % 4 === 0) bonus = { ...spot(), t: 45 }; }
+                else if (bonus && h.x === bonus.x && h.y === bonus.y) { score += 5; ate = true; bonus = null; beep(900); }
+                if (!ate) snake.pop();
+                if (bonus && --bonus.t <= 0) bonus = null;
+                hud(); draw();
+            };
+            const loop = () => { tick(); snakeTimer = setTimeout(loop, Math.max(60, 130 - score * 3)); };
+            const setDir = (x, y) => {
+                if (over) return;
+                const last = q.length ? q[q.length - 1] : dir;
+                started = true; paused = false;
+                if (!(x === -last.x && y === -last.y) && !(x === last.x && y === last.y) && q.length < 2) q.push({ x, y });
+                draw();
+            };
+            pcKeys = (e) => {
+                if (e.code === 'Space' || e.code === 'KeyP') { e.preventDefault(); if (over) return; if (!started) started = true; else paused = !paused; draw(); return; }
+                if (e.code === 'KeyR' || e.code === 'Enter') { reset(); return; }
+                const m = { ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0] }[e.code];
+                if (m) { e.preventDefault(); setDir(m[0], m[1]); }
+            };
+            pcBody.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => { const d = b.dataset.d.split(',').map(Number); setDir(d[0], d[1]); }));
+            reset();
+            loop();
+        }
+        document.getElementById('pc-exit').addEventListener('click', (e) => { e.stopPropagation(); closePC(); });
+        document.getElementById('pc-home').addEventListener('click', () => openApp('home'));
+        document.addEventListener('keydown', (e) => {
+            if (!isPCOpen) return;
+            if (e.code === 'Escape' || e.code === 'KeyX') closePC(); else if (pcKeys) pcKeys(e);
+        });
+
+        // Textura procedural en canvas (sin imágenes externas)
+        function makeTex(base, draw, rx, ry, size = 512) {
+            const cv = document.createElement('canvas');
+            cv.width = cv.height = size;
+            const c = cv.getContext('2d');
+            c.fillStyle = base; c.fillRect(0, 0, size, size);
+            draw(c, size);
+            const t = new THREE.CanvasTexture(cv);
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.repeat.set(rx, ry);
+            t.anisotropy = 8;
+            return t;
+        }
+        function speckle(c, n, size, rgb, a) {
+            for (let i = 0; i < n; i++) {
+                c.fillStyle = `rgba(${rgb},${Math.random() * a})`;
+                c.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 1 + Math.random() * 2);
+            }
+        }
+
+        // ✨ NUEVO: rayos de sol dorados que entran por la ventana + polvo flotando
+        let dustPts = null;
+        function buildSunBeam() {
+            const gc = document.createElement('canvas'); gc.width = 4; gc.height = 128; const g = gc.getContext('2d');
+            const lg = g.createLinearGradient(0, 0, 0, 128); lg.addColorStop(0, '#fff'); lg.addColorStop(0.7, '#555'); lg.addColorStop(1, '#000');
+            g.fillStyle = lg; g.fillRect(0, 0, 4, 128);
+            const alpha = new THREE.CanvasTexture(gc);
+            const beamMat = sunBeamMat = new THREE.MeshBasicMaterial({ color: 0xffb867, alphaMap: alpha, transparent: true, opacity: 0.17, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+            // Ventana derecha (x = 5.84, z = 0.2): el rayo baja hacia el piso del cuarto
+            const wy0 = 1.25, wy1 = 2.55, wz0 = -0.75, wz1 = 1.15, shift = new THREE.Vector3(-3.1, -2.4, 0.6);
+            const W = [new THREE.Vector3(5.8, wy1, wz0), new THREE.Vector3(5.8, wy1, wz1), new THREE.Vector3(5.8, wy0, wz1), new THREE.Vector3(5.8, wy0, wz0)];
+            const F = W.map(p => p.clone().add(shift).add(new THREE.Vector3(0, -(p.y - wy0) * 0.35, 0)));
+            const pos = [], uv = [];
+            for (let i = 0; i < 4; i++) {
+                const a = W[i], b = W[(i + 1) % 4], c = F[(i + 1) % 4], d = F[i];
+                [a, b, c, a, c, d].forEach(p => pos.push(p.x, p.y, p.z));
+                uv.push(0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0);
+            }
+            const bg = new THREE.BufferGeometry();
+            bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+            const beam = new THREE.Mesh(bg, beamMat); beam.renderOrder = 5; scene.add(beam);
+            // Mancha de luz en el piso con la cruz de la ventana
+            const pc = document.createElement('canvas'); pc.width = pc.height = 128; const p = pc.getContext('2d');
+            p.filter = 'blur(6px)'; p.fillStyle = '#fff'; p.fillRect(18, 18, 92, 92); p.filter = 'none';
+            p.fillStyle = '#000'; p.filter = 'blur(2px)'; p.fillRect(61, 10, 6, 108); p.fillRect(10, 61, 108, 6); p.filter = 'none';
+            const patch = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.9), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(pc), color: 0xffa94d, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+            patch.rotation.x = -Math.PI / 2; patch.position.set(2.75, 0.015, 0.75); scene.add(patch);
+            // Polvo
+            const N = 160, dp = new Float32Array(N * 3);
+            for (let i = 0; i < N; i++) { const t = Math.random(); dp[i * 3] = 5.8 + shift.x * t + rr_(-0.3, 0.3); dp[i * 3 + 1] = 1.9 + shift.y * t + rr_(-0.6, 0.6); dp[i * 3 + 2] = 0.2 + shift.z * t + rr_(-0.9, 0.9); }
+            const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+            dustPts = new THREE.Points(dg, new THREE.PointsMaterial({ color: new THREE.Color(1.6, 1.2, 0.8), size: 0.018, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
+            dustPts.userData.base = dp.slice(); scene.add(dustPts);
+        }
+        function updateDust(t) {
+            if (!dustPts || currentScene !== 'HOME') return;
+            const a = dustPts.geometry.attributes.position, b = dustPts.userData.base;
+            for (let i = 0; i < a.count; i++) {
+                a.array[i * 3] = b[i * 3] + Math.sin(t * 0.0003 + i) * 0.08;
+                a.array[i * 3 + 1] = b[i * 3 + 1] + Math.sin(t * 0.0002 + i * 1.7) * 0.12;
+                a.array[i * 3 + 2] = b[i * 3 + 2] + Math.cos(t * 0.00025 + i * 0.7) * 0.08;
+            }
+            a.needsUpdate = true;
+        }
+
+        // ✨ NUEVO: mano en primera persona que sostiene los ingredientes
+        let handGroup, handSocket, handPop = 0, bobT = 0, bobAmt = 0;
+        function buildHand() {
+            handGroup = new THREE.Group();
+            const skinM = new THREE.MeshStandardMaterial({ color: 0xf0c08f, roughness: 0.55 });
+            const sleeveM = new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.75 });
+            const cuffM = new THREE.MeshStandardMaterial({ color: 0xf6ead2, roughness: 0.6 });
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.42, 14), sleeveM); arm.rotation.x = Math.PI / 2 - 0.25; arm.position.set(0.03, -0.06, 0.2); handGroup.add(arm);
+            const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 14), cuffM); cuff.rotation.x = Math.PI / 2 - 0.25; cuff.position.set(0.02, -0.01, 0.0); handGroup.add(cuff);
+            const palm = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), skinM); palm.scale.set(1.15, 0.45, 1.25); palm.position.set(0.01, 0.0, -0.05); handGroup.add(palm);
+            for (let i = 0; i < 4; i++) {
+                const f = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 8), skinM);
+                f.rotation.x = Math.PI / 2 + 0.6; f.position.set(-0.035 + i * 0.024, 0.012, -0.12); handGroup.add(f);
+                const tip = new THREE.Mesh(new THREE.SphereGeometry(0.0125, 8, 6), skinM); tip.position.set(-0.035 + i * 0.024, 0.032, -0.142); handGroup.add(tip);
+            }
+            const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.06, 8), skinM); thumb.rotation.set(0.4, 0, 1.1); thumb.position.set(-0.07, 0.01, -0.04); handGroup.add(thumb);
+            handSocket = new THREE.Group(); handSocket.position.set(0.01, 0.035, -0.06); handGroup.add(handSocket);
+            handGroup.position.set(0.26, -0.27, -0.45); handGroup.rotation.set(0.25, -0.3, 0.05);
+            handGroup.visible = false;
+            camera.add(handGroup);
+        }
+        function updateHand(dt) {
+            if (!handGroup) return;
+            handPop = Math.max(0, handPop - dt * 4.5);
+            const e = handPop * handPop;
+            handGroup.position.set(0.26 + Math.cos(bobT * 0.5) * 0.012 * bobAmt, -0.27 - e * 0.25 + Math.abs(Math.sin(bobT * 0.5)) * 0.012 * bobAmt, -0.45);
+            handGroup.rotation.z = 0.05 + e * 0.5;
+            if (heldItemMesh) heldItemMesh.rotation.y += dt * 0.4;
+        }
+
+        // ✨ NUEVO: choques reales en la casa (ya no se atraviesan paredes ni muebles)
+        function collideHome(pos, r = 0.28) {
+            for (const b of homeBoxes) {
+                const cx = Math.max(b.min.x, Math.min(pos.x, b.max.x)), cz = Math.max(b.min.z, Math.min(pos.z, b.max.z));
+                const dx = pos.x - cx, dz = pos.z - cz, d2 = dx * dx + dz * dz;
+                if (d2 >= r * r) continue;
+                if (d2 > 1e-8) { const d = Math.sqrt(d2), k = (r - d) / d; pos.x += dx * k; pos.z += dz * k; }
+                else {
+                    const o = [pos.x - b.min.x, b.max.x - pos.x, pos.z - b.min.z, b.max.z - pos.z], m = Math.min(...o);
+                    if (m === o[0]) pos.x = b.min.x - r; else if (m === o[1]) pos.x = b.max.x + r; else if (m === o[2]) pos.z = b.min.z - r; else pos.z = b.max.z + r;
+                }
+            }
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1d2233);
+            scene.fog = new THREE.FogExp2(0x3a4b53, 0.02);
+
+            // Camera setup - starts lying in bed looking slightly upwards
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.copy(bedPosition);
+            camera.rotation.set(Math.PI / 3, 0, Math.PI / 12); // Lying down posture looking towards ceiling
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1.5 : 2)); // ✨ evita que los celulares se pongan lentos
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.05;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            buildEnvMap();
+
+            // Controls setup
+            controls = new THREE.PointerLockControls(camera, renderer.domElement);
+
+            const instructions = document.getElementById('instructions');
+            const crosshair = document.getElementById('crosshair');
+
+            // Detect touch device
+            const isTouchDevice = IS_TOUCH;
+
+            document.getElementById('btn-start').addEventListener('click', (e) => {
+                e.stopPropagation();
+                instructions.style.display = 'none';
+                startWakeUpSequence(isTouchDevice);
+            });
+
+            controls.addEventListener('lock', () => {
+                if (!isWakingUp) {
+                    instructions.style.display = 'none';
+                    crosshair.classList.remove('hidden');
+                }
+            });
+
+            controls.addEventListener('unlock', () => {
+                if (!isTouchDevice && !isShiftPromptActive && !isWakingUp && !isPCOpen) {
+                    instructions.style.display = 'flex';
+                    crosshair.classList.add('hidden');
+                }
+            });
+
+            scene.add(controls.getObject());
+
+            // Interaction Event Listeners
+            window.addEventListener('click', handleWorldInteraction);
+
+            document.getElementById('btn-drop').addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropHeldItem();
+            });
+
+            // ✨ Luces del mundo (su color cambia con la hora del día)
+            ambientLight = new THREE.AmbientLight(0xffedd8, 0.3);
+            scene.add(ambientLight);
+            hemiLight = new THREE.HemisphereLight(0xcfe3ff, 0x6d4c41, 0.35); // luz de cielo + rebote del piso
+            scene.add(hemiLight);
+
+            sunLight = new THREE.DirectionalLight(0xffd8b1, 0.5);
+            sunLight.position.set(15, 20, 15);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.bias = -0.0005;
+            sunLight.shadow.normalBias = 0.02;
+            const sc = sunLight.shadow.camera; sc.left = sc.bottom = -20; sc.right = sc.top = 20; sc.far = 80;
+            scene.add(sunLight); scene.add(sunLight.target);
+
+            // Warm interior ceiling lamp (✨ sombras más baratas: la de la casa ya no proyecta sombras en cubo)
+            const roomLight = new THREE.PointLight(0xffb36b, 0.85, 12);
+            roomLight.position.set(0, 3.1, 0);
+            scene.add(roomLight); homeLights.push(roomLight);
+
+            // Bedroom Warm Nightstand Lamp
+            const bedLampLight = new THREE.PointLight(0xffaa55, 0.7, 6);
+            bedLampLight.position.set(2.4, 1.2, -4.2);
+            scene.add(bedLampLight); homeLights.push(bedLampLight);
+
+            // Lamp mesh fixture
+            const lampGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.2, 16);
+            const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0xffb866, emissiveIntensity: 2.2, roughness: 0.6 });
+            const lamp = new THREE.Mesh(lampGeo, lampMat);
+            lamp.position.set(0, 3.4, 0);
+            scene.add(lamp);
+
+            // Grass
+            const grassGeo = new THREE.PlaneGeometry(100, 100);
+            const grassTex = makeTex('#2c5233', (c, n) => {
+                for (let i = 0; i < 9000; i++) {
+                    c.fillStyle = `hsla(${95 + Math.random() * 40},45%,${18 + Math.random() * 18}%,0.6)`;
+                    c.fillRect(Math.random() * n, Math.random() * n, 2, 4 + Math.random() * 6);
+                }
+            }, 40, 40);
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: grassTex, roughness: 1 });
+            const grass = new THREE.Mesh(grassGeo, grassMat);
+            grass.rotation.x = -Math.PI / 2;
+            grass.position.y = -0.01;
+            grass.receiveShadow = true;
+            scene.add(grass);
+
+            // Wood Parquet Flooring
+            const floorGeo = new THREE.PlaneGeometry(12, 10);
+            const floorTex = makeTex('#1e120a', (c) => {
+                for (let r = 0; r < 4; r++) {
+                    const off = (r % 2) * 128;
+                    for (let k = -1; k < 2; k++) {
+                        const x = off + k * 256;
+                        c.fillStyle = `hsl(${22 + Math.random() * 6},${38 + Math.random() * 10}%,${36 + Math.random() * 16}%)`;
+                        c.fillRect(x, r * 128, 254, 126);
+                        for (let g = 0; g < 16; g++) {
+                            c.strokeStyle = `rgba(40,20,10,${0.05 + Math.random() * 0.12})`;
+                            const y = r * 128 + Math.random() * 126;
+                            c.beginPath(); c.moveTo(x, y); c.lineTo(x + 254, y + (Math.random() - 0.5) * 8); c.stroke();
+                        }
+                    }
+                }
+            }, 6, 5);
+            const floorMat = shiny(new THREE.MeshStandardMaterial({ color: 0xffffff, map: floorTex, bumpMap: floorTex, bumpScale: 0.6, roughness: 0.45, metalness: 0.05 }), 0.35);
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Cozy Carpet in Living Room
+            const rugGeo = new THREE.PlaneGeometry(4.5, 3.5);
+            const rugTex = makeTex('#7b1fa2', (c, n) => {
+                speckle(c, 9000, n, '255,255,255', 0.12);
+                c.strokeStyle = '#e1bee7'; c.lineWidth = 14; c.strokeRect(30, 30, n - 60, n - 60);
+                c.strokeStyle = '#4a148c'; c.lineWidth = 6; c.strokeRect(60, 60, n - 120, n - 120);
+                c.fillStyle = '#ce93d8';
+                for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(n / 2, 120 + i * 60); c.lineTo(n / 2 + 40, 150 + i * 60); c.lineTo(n / 2, 180 + i * 60); c.lineTo(n / 2 - 40, 150 + i * 60); c.fill(); }
+            }, 1, 1);
+            const rugMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: rugTex, bumpMap: rugTex, bumpScale: 0.3, roughness: 1 });
+            const rug = new THREE.Mesh(rugGeo, rugMat);
+            rug.rotation.x = -Math.PI / 2;
+            rug.position.set(-3.2, 0.01, 1);
+            rug.receiveShadow = true;
+            scene.add(rug);
+
+            // Ceiling
+            const ceilingGeo = new THREE.PlaneGeometry(12, 10);
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xe0d7cf, roughness: 0.9 });
+            const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.castShadow = true; // el sol ya no entra por el techo
+            ceiling.position.y = 3.5;
+            scene.add(ceiling);
+            // ✨ techo exterior (para que la casa se vea bien desde afuera)
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.3, 10.6), new THREE.MeshStandardMaterial({ color: 0x7a3b2e, roughness: 0.8 }));
+            roof.position.set(0, 3.67, 0); roof.castShadow = true; scene.add(roof);
+
+            // Wall Material
+            const wallTex = makeTex('#dcd5cc', (c, n) => speckle(c, 6000, n, '90,80,70', 0.08), 3, 2);
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: wallTex, bumpMap: wallTex, bumpScale: 0.15, roughness: 0.92 });
+
+            function addWall(width, height, depth, x, y, z, rotY = 0) {
+                const wallGeo = new THREE.BoxGeometry(width, height, depth);
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+                wall.position.set(x, y, z);
+                wall.rotation.y = rotY;
+                wall.castShadow = true;
+                wall.receiveShadow = true;
+                scene.add(wall);
+                colliders.push(wall);
+                return wall;
+            }
+
+            // Outer Walls
+            addWall(4.8, 3.5, 0.3, -3.6, 1.75, -5); addWall(4.8, 3.5, 0.3, 3.6, 1.75, -5); addWall(2.4, 0.8, 0.3, 0, 3.1, -5); // Fondo con puerta a la cocina
+            addWall(4.5, 3.5, 0.3, -3.75, 1.75, 5); // Front Left
+            addWall(4.5, 3.5, 0.3, 3.75, 1.75, 5); // Front Right
+            addWall(3, 0.8, 0.3, 0, 3.1, 5); // Above front doorway
+
+            addWall(0.3, 3.5, 10, -6, 1.75, 0); // Left wall
+            addWall(0.3, 3.5, 10, 6, 1.75, 0); // Right wall
+
+            // Interior Room Partition
+            addWall(0.3, 3.5, 5, 1, 1.75, 2.5);
+
+            // Modern Sofa
+            const sofaBaseGeo = new THREE.BoxGeometry(3, 0.6, 1.2);
+            const sofaMat = new THREE.MeshStandardMaterial({ color: 0x1b4d4f, roughness: 0.9 });
+            const sofa = new THREE.Mesh(sofaBaseGeo, sofaMat);
+            sofa.position.set(-3.5, 0.3, 2);
+            sofa.castShadow = true;
+            scene.add(sofa);
+
+            const sofaBackGeo = new THREE.BoxGeometry(3, 1, 0.3);
+            const sofaBack = new THREE.Mesh(sofaBackGeo, sofaMat);
+            sofaBack.position.set(-3.5, 1.1, 2.45);
+            sofaBack.castShadow = true;
+            scene.add(sofaBack);
+
+            // Coffee Table & Plant
+            const tableTopGeo = new THREE.BoxGeometry(1.6, 0.1, 0.9);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.5 });
+            const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
+            tableTop.position.set(-3.5, 0.5, 0.3);
+            tableTop.castShadow = true;
+            scene.add(tableTop);
+
+            const potGeo = new THREE.CylinderGeometry(0.15, 0.1, 0.25, 12);
+            const potMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 });
+            const pot = new THREE.Mesh(potGeo, potMat);
+            pot.position.set(-3.5, 0.675, 0.3);
+            scene.add(pot);
+
+            const plantGeo = new THREE.DodecahedronGeometry(0.2, 1);
+            const plantMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9 });
+            const plant = new THREE.Mesh(plantGeo, plantMat);
+            plant.position.set(-3.5, 0.85, 0.3);
+            scene.add(plant);
+
+            // Wall Painting
+            const frameGeo = new THREE.BoxGeometry(1.8, 1.2, 0.04);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+            const painting = new THREE.Mesh(frameGeo, frameMat);
+            painting.position.set(-3.5, 2.0, -4.83);
+            scene.add(painting);
+
+            const canvasGeo = new THREE.PlaneGeometry(1.6, 1.0);
+            const artTex = makeTex('#e9c9a0', (c, n) => {
+                const g = c.createLinearGradient(0, 0, 0, n); g.addColorStop(0, '#f4a261'); g.addColorStop(0.55, '#e76f51'); g.addColorStop(1, '#264653');
+                c.fillStyle = g; c.fillRect(0, 0, n, n);
+                c.fillStyle = '#ffe8a3'; c.beginPath(); c.arc(n * 0.65, n * 0.38, 70, 0, 7); c.fill();
+                c.fillStyle = '#1d3b45'; c.beginPath(); c.moveTo(0, n); c.lineTo(n * 0.3, n * 0.55); c.lineTo(n * 0.6, n); c.fill();
+                c.fillStyle = '#2a5560'; c.beginPath(); c.moveTo(n * 0.35, n); c.lineTo(n * 0.75, n * 0.6); c.lineTo(n, n); c.fill();
+            }, 1, 1);
+            const canvasMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: artTex, roughness: 0.8 });
+            const canvasMesh = new THREE.Mesh(canvasGeo, canvasMat);
+            canvasMesh.position.set(-3.5, 2.0, -4.8);
+            scene.add(canvasMesh);
+
+            // Bed in Bedroom
+            const bedBaseGeo = new THREE.BoxGeometry(2.2, 0.6, 3);
+            const bedMat = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.85 });
+            const bed = new THREE.Mesh(bedBaseGeo, bedMat);
+            bed.position.set(4, 0.3, -3);
+            bed.castShadow = true;
+            scene.add(bed);
+
+            const mattressGeo = new THREE.BoxGeometry(2.1, 0.4, 2.8);
+            const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.95 });
+            const mattress = new THREE.Mesh(mattressGeo, mattressMat);
+            mattress.position.set(4, 0.75, -3);
+            mattress.castShadow = true;
+            scene.add(mattress);
+
+            // Pillows
+            const pillowGeo = new THREE.BoxGeometry(0.8, 0.15, 0.5);
+            const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.9 });
+            const pillow = new THREE.Mesh(pillowGeo, pillowMat);
+            pillow.position.set(4, 0.98, -4.1);
+            scene.add(pillow);
+
+            // Nightstand Table next to bed
+            const nightstandGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const nightstandMat = new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8 });
+            const nightstand = new THREE.Mesh(nightstandGeo, nightstandMat);
+            nightstand.position.set(2.4, 0.4, -4.2);
+            nightstand.castShadow = true;
+            scene.add(nightstand);
+
+            // Kitchen Counter
+            const counterGeo = new THREE.BoxGeometry(3.5, 0.9, 1);
+            const counterMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 });
+            const counter = new THREE.Mesh(counterGeo, counterMat);
+            counter.position.set(4, 0.45, 4);
+            counter.castShadow = true;
+            scene.add(counter);
+
+            // ✨ Cajas de choque: paredes + muebles grandes
+            [...colliders, sofa, sofaBack, tableTop, bed, nightstand, counter].forEach(m => {
+                m.updateMatrixWorld(true);
+                const b = new THREE.Box3().setFromObject(m);
+                if (b.min.y < 1.8 && b.max.y > 0.05) homeBoxes.push(b);
+            });
+
+            // --- DETALLES REALISTAS DE LA CASA ---
+            const box = (w, h, d, x, y, z, mat, shadow = true) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+                m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; scene.add(m); return m;
+            };
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xf1ece4, roughness: 0.5 });
+            const woodDark = new THREE.MeshStandardMaterial({ color: 0x3e2a22, roughness: 0.6 });
+            const fabricMat = new THREE.MeshStandardMaterial({ color: 0x24686b, roughness: 1 });
+
+            // Zócalos y marcos de la puerta
+            box(11.7, 0.15, 0.04, 0, 0.075, -4.82, trimMat, false);
+            box(0.04, 0.15, 9.7, -5.82, 0.075, 0, trimMat, false);
+            box(0.04, 0.15, 9.7, 5.82, 0.075, 0, trimMat, false);
+            box(4.35, 0.15, 0.04, -3.675, 0.075, 4.82, trimMat, false);
+            box(4.35, 0.15, 0.04, 3.675, 0.075, 4.82, trimMat, false);
+            box(0.04, 0.15, 5, 0.82, 0.075, 2.5, trimMat, false);
+            box(0.04, 0.15, 5, 1.18, 0.075, 2.5, trimMat, false);
+            box(0.12, 2.7, 0.4, -1.5, 1.35, 5, trimMat); box(0.12, 2.7, 0.4, 1.5, 1.35, 5, trimMat);
+            box(3.1, 0.12, 0.4, 0, 2.74, 5, trimMat);
+
+            // ✨ Ventanas con cielo dorado de la tarde (4 PM)
+            const skyTex = makeTex('#ffcf91', (c, n) => {
+                const g = c.createLinearGradient(0, 0, 0, n); g.addColorStop(0, '#7fb2e6'); g.addColorStop(0.55, '#ffd29a'); g.addColorStop(1, '#ffb070');
+                c.fillStyle = g; c.fillRect(0, 0, n, n);
+                const s = c.createRadialGradient(n * 0.7, n * 0.62, 4, n * 0.7, n * 0.62, n * 0.4); s.addColorStop(0, 'rgba(255,250,225,1)'); s.addColorStop(1, 'rgba(255,220,160,0)');
+                c.fillStyle = s; c.fillRect(0, 0, n, n);
+                c.fillStyle = 'rgba(255,240,220,0.65)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.ellipse(80 + i * 110, 120 + (i % 2) * 70, 60, 18, 0, 0, 7); c.fill(); }
+                c.fillStyle = 'rgba(40,70,50,0.85)'; for (let x = 0; x < n; x += 40) { c.beginPath(); c.arc(x + 20, n - 10, 26 + Math.random() * 16, 0, 7); c.fill(); }
+            }, 1, 1);
+            const glassMat = new THREE.MeshBasicMaterial({ map: skyTex, color: new THREE.Color(1.25, 1.2, 1.1) });
+            function addWindow(x, z, rotY, lx) {
+                const g = new THREE.Group(); g.position.set(x, 1.9, z); g.rotation.y = rotY;
+                const pane = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.4), glassMat); pane.position.z = 0.01; g.add(pane);
+                [[2.2, 0.1, 0, 0.75], [2.2, 0.1, 0, -0.75], [0.1, 1.6, 1.05, 0], [0.1, 1.6, -1.05, 0], [0.05, 1.4, 0, 0], [2, 0.05, 0, 0]].forEach(p => {
+                    const f = new THREE.Mesh(new THREE.BoxGeometry(p[0], p[1], 0.08), trimMat); f.position.set(p[2], p[3], 0.04); g.add(f);
+                });
+                scene.add(g);
+                const wl = new THREE.PointLight(0xffc98a, 0.75, 7); wl.position.set(lx, 1.9, z); scene.add(wl); homeLights.push(wl);
+            }
+            addWindow(-5.84, -1.5, Math.PI / 2, -5.0);
+            addWindow(5.84, 0.2, -Math.PI / 2, 5.0);
+            buildSunBeam();
+
+            // Sofá: patas, cojines y almohadones
+            [[-4.9, 1.5], [-2.1, 1.5], [-4.9, 2.4], [-2.1, 2.4]].forEach(p => box(0.08, 0.1, 0.08, p[0], 0.02, p[1], woodDark));
+            box(0.25, 0.5, 1.2, -5.1, 0.7, 2, fabricMat); box(0.25, 0.5, 1.2, -1.9, 0.7, 2, fabricMat);
+            for (let i = 0; i < 3; i++) {
+                box(0.95, 0.18, 0.9, -4.45 + i, 0.69, 1.9, fabricMat);
+                const b = box(0.95, 0.6, 0.2, -4.45 + i, 1.0, 2.2, fabricMat); b.rotation.x = -0.15;
+            }
+            const pil = box(0.4, 0.4, 0.12, -4.5, 0.95, 1.9, new THREE.MeshStandardMaterial({ color: 0xe9b44c, roughness: 1 })); pil.rotation.set(-0.3, 0.4, 0.2);
+
+            // Mesa de centro: patas y hojas de la planta
+            [[-0.7, -0.35], [0.7, -0.35], [-0.7, 0.35], [0.7, 0.35]].forEach(p => box(0.07, 0.45, 0.07, -3.5 + p[0], 0.225, 0.3 + p[1], woodDark));
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9a45, roughness: 0.7 });
+            for (let i = 0; i < 7; i++) {
+                const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), leafMat);
+                leaf.scale.set(0.4, 1.6, 0.15); const a = i / 7 * Math.PI * 2;
+                leaf.position.set(-3.5 + Math.cos(a) * 0.12, 0.9, 0.3 + Math.sin(a) * 0.12);
+                leaf.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6); leaf.castShadow = true; scene.add(leaf);
+            }
+
+            // Cama: cabecero, cobija y almohada extra
+            box(2.3, 1.4, 0.12, 4, 0.8, -4.7, woodDark);
+            box(2.14, 0.1, 1.25, 4, 0.99, -2.175, new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 1 }));
+            box(0.8, 0.15, 0.5, 4.5, 0.98, -4.1, new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 1 }));
+
+            // Lámpara de la mesita
+            const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.2, 12), woodDark); lampBase.position.set(2.4, 0.9, -4.2); scene.add(lampBase);
+            const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.26, 16),
+                new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0xffb866, emissiveIntensity: 2.0 }));
+            lampShade.position.set(2.4, 1.1, -4.2); scene.add(lampShade);
+
+            // Encimera de mármol
+            box(3.6, 0.05, 1.05, 4, 0.925, 4, shiny(new THREE.MeshStandardMaterial({ color: 0xe6e6e6, roughness: 0.15, metalness: 0.1 }), 0.9));
+
+            // Puerta de entrada de doble hoja: se abre sola al acercarte
+            const doorTex = makeTex('#7a4a28', (c, n) => {
+                for (let x = 0; x < n; x += 64) {
+                    c.fillStyle = `hsl(25,45%,${27 + rr_(0, 9)}%)`; c.fillRect(x, 0, 62, n);
+                    for (let g = 0; g < 10; g++) { c.strokeStyle = 'rgba(30,15,5,0.25)'; c.beginPath(); c.moveTo(x + rr_(2, 60), 0); c.lineTo(x + rr_(2, 60), n); c.stroke(); }
+                    c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(x + 62, 0, 2, n);
+                }
+            }, 1, 1, 256);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: doorTex, bumpMap: doorTex, bumpScale: 0.5, roughness: 0.6 });
+            const panelMat = new THREE.MeshStandardMaterial({ color: 0x9a6236, roughness: 0.55 });
+            const goldMat = shiny(new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.8 }), 1.2);
+            const makeLeaf = (hx, dir) => {
+                const hinge = new THREE.Group(); hinge.position.set(hx, 0, 4.95);
+                const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.45, 2.66, 0.07), doorMat); leaf.position.set(dir * 0.725, 1.36, 0); leaf.castShadow = true; hinge.add(leaf);
+                [0.55, 1.75].forEach(y => { const pn = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 0.03), panelMat); pn.position.set(dir * 0.725, y, 0.04); hinge.add(pn); const pb = pn.clone(); pb.position.z = -0.04; hinge.add(pb); });
+                const knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), goldMat); knob.position.set(dir * 1.3, 1.1, 0.07); hinge.add(knob);
+                const knob2 = knob.clone(); knob2.position.z = -0.07; hinge.add(knob2);
+                scene.add(hinge); return hinge;
+            };
+            doorL = makeLeaf(-1.44, 1); doorR = makeLeaf(1.44, -1);
+            box(0.1, 0.06, 0.3, 0, 0.03, 4.95, trimMat, false); // umbral
+
+            // ✨ Jardín frente a la casa (se ve al abrir la puerta)
+            [[-6, 11], [5.5, 13], [-2, 17], [9, 9], [-9, 15]].forEach(([x, z], k) => {
+                const s = 0.9 + (k % 3) * 0.2;
+                box(0.3 * s, 2.4 * s, 0.3 * s, x, 1.2 * s, z, woodDark);
+                for (let j = 0; j < 3; j++) { const lf = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 + Math.random() * 0.5) * s, 1), new THREE.MeshStandardMaterial({ color: [0x3b7d3a, 0x2e6b34, 0x4a8a3f][j], roughness: 0.9, flatShading: true })); lf.position.set(x + rr_(-0.6, 0.6), (2.9 + j * 0.45) * s, z + rr_(-0.6, 0.6)); lf.castShadow = true; scene.add(lf); }
+            });
+            const path = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 14), new THREE.MeshStandardMaterial({ color: 0x9c8c78, roughness: 0.95 }));
+            path.rotation.x = -Math.PI / 2; path.position.set(0, 0.005, 12); path.receiveShadow = true; scene.add(path);
+
+            // =====================================================================
+            // 🏠 AMPLIACIÓN: cocina-comedor al fondo + misiones de la mañana
+            // =====================================================================
+            const kFloor = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), new THREE.MeshStandardMaterial({ roughness: 0.4, map: makeTex('#d9d3c6', (c, n) => { c.strokeStyle = 'rgba(90,80,70,.35)'; c.lineWidth = 3; for (let i = 0; i <= n; i += 64) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, n); c.moveTo(0, i); c.lineTo(n, i); c.stroke(); } }, 6, 3) }));
+            kFloor.rotation.x = -Math.PI / 2; kFloor.position.set(0, 0, -8); kFloor.receiveShadow = true; scene.add(kFloor);
+            const kCeil = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), ceilingMat); kCeil.rotation.x = Math.PI / 2; kCeil.position.set(0, 3.5, -8); kCeil.castShadow = true; scene.add(kCeil);
+            const kRoof = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.3, 6.1), roof.material); kRoof.position.set(0, 3.67, -8.3); kRoof.castShadow = true; scene.add(kRoof);
+            const solid = (m) => { m.updateMatrixWorld(true); homeBoxes.push(new THREE.Box3().setFromObject(m)); return m; };
+            [[0.3, 3.5, 6, -6, 1.75, -8], [0.3, 3.5, 6, 6, 1.75, -8], [12.3, 3.5, 0.3, 0, 1.75, -11]].forEach(a => solid(addWall(...a)));
+            grass.scale.set(2.2, 2.2, 1); grassTex.repeat.set(88, 88); // pasto más grande para poder conducir
+            const kLamp = lamp.clone(); kLamp.position.set(0, 3.4, -8); scene.add(kLamp);
+            const kLight = new THREE.PointLight(0xffd9a8, 1.0, 11); kLight.position.set(0, 3.1, -8); scene.add(kLight); homeLights.push(kLight);
+
+            const cab = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.6 });
+            const steelK = shiny(new THREE.MeshStandardMaterial({ color: 0xcfd4d8, roughness: 0.25, metalness: 0.8 }), 0.8);
+            const blk = new THREE.MeshStandardMaterial({ color: 0x15181b, roughness: 0.4 });
+            const marble = shiny(new THREE.MeshStandardMaterial({ color: 0xe6e6e6, roughness: 0.15, metalness: 0.1 }), 0.9);
+            const mk = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; scene.add(m); return m; };
+            const act = (m, k) => { m.userData.home = k; homeInteractables.push(m); return m; };
+            // Muebles de cocina
+            solid(box(8, 0.9, 0.9, -1.9, 0.45, -10.5, cab)); box(8.1, 0.05, 0.95, -1.9, 0.925, -10.5, marble);
+            box(5, 0.8, 0.45, -3.4, 2.6, -10.75, cab);
+            solid(box(0.9, 2.0, 0.8, 4.9, 1.0, -10.4, steelK)); box(0.04, 0.6, 0.05, 4.45, 1.3, -9.98, steelK);
+            box(1.0, 0.04, 0.6, -4.3, 0.955, -10.5, blk); box(0.04, 0.3, 0.04, -4.3, 1.1, -10.8, steelK); box(0.04, 0.04, 0.22, -4.3, 1.24, -10.7, steelK); // lavabo y grifo
+            box(0.9, 0.03, 0.45, -3.2, 0.965, -10.5, steelK); // escurridor
+            const foam = mk(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }), -4.3, 0.99, -10.5); foam.scale.set(1.4, 0.35, 0.9); foam.visible = false;
+            // Mesa y sillas
+            solid(box(2.0, 0.08, 1.2, 2.8, 0.76, -7.6, woodDark));
+            [[-0.9, -0.5], [0.9, -0.5], [-0.9, 0.5], [0.9, 0.5]].forEach(([dx, dz]) => box(0.07, 0.72, 0.07, 2.8 + dx, 0.36, -7.6 + dz, woodDark));
+            [-6.6, -8.6].forEach((z, k) => { box(0.5, 0.06, 0.5, 2.8, 0.45, z, woodDark); box(0.08, 0.42, 0.08, 2.8, 0.21, z, woodDark); box(0.5, 0.5, 0.06, 2.8, 0.75, z + (k ? 0.22 : -0.22), woodDark); });
+
+            // Misión 1: platos sucios apilados (clic para llevarlos al lavabo y fregar)
+            const plates = [], white = new THREE.Color(0xf3f1ec); let washing = null;
+            for (let i = 0; i < 4; i++) {
+                const p = mk(new THREE.CylinderGeometry(0.22, 0.18, 0.03, 20), new THREE.MeshStandardMaterial({ color: 0x9a7b5a, roughness: 0.6 }), -5.4, 0.975 + i * 0.04, -10.5);
+                act(p, 'plate'); p.userData.st = 0; p.userData.sc = 0; plates.push(p);
+            }
+            // Misión 2: desayuno (huevos fritos + tostadas)
+            const eggMat = new THREE.MeshStandardMaterial({ color: 0xf4ead6, roughness: 0.5 });
+            const carton = act(box(0.4, 0.07, 0.24, -2.3, 0.985, -10.5, new THREE.MeshStandardMaterial({ color: 0xc8b79a, roughness: 1 }), false), 'eggs');
+            const eggs = [-0.09, 0.09].map(dx => { const e = act(mk(new THREE.SphereGeometry(0.05, 10, 8), eggMat, -2.3 + dx, 1.06, -10.5), 'eggs'); e.scale.y = 1.3; return e; });
+            act(box(0.34, 0.2, 0.22, -1.7, 1.05, -10.5, new THREE.MeshStandardMaterial({ color: 0xd9a25f, roughness: 0.9 })), 'bread');
+            box(0.9, 0.06, 0.75, -0.4, 0.98, -10.5, blk);
+            [[-0.6, -10.67], [-0.2, -10.67], [-0.6, -10.33], [-0.2, -10.33]].forEach(([x, z]) => mk(new THREE.CylinderGeometry(0.11, 0.11, 0.012, 16), new THREE.MeshStandardMaterial({ color: 0x333a40, roughness: 0.5 }), x, 1.015, z));
+            const panMat = new THREE.MeshStandardMaterial({ color: 0x22262a, roughness: 0.35, metalness: 0.7 });
+            act(mk(new THREE.CylinderGeometry(0.17, 0.14, 0.05, 20), panMat, -0.6, 1.06, -10.33), 'pan'); act(box(0.04, 0.025, 0.22, -0.6, 1.07, -10.08, panMat), 'pan');
+            const fry = (x, y, z) => { const g = new THREE.Group(); const w = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.012, 14), new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4 })); const yk = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffb300, roughness: 0.3 })); yk.scale.y = 0.6; yk.position.y = 0.01; g.add(w, yk); g.position.set(x, y, z); g.visible = false; scene.add(g); return g; };
+            const panEggs = [fry(-0.67, 1.095, -10.33), fry(-0.53, 1.095, -10.33)], plateEggs = [fry(2.72, 0.845, -7.68), fry(2.88, 0.845, -7.68)];
+            act(box(0.5, 0.22, 0.3, 1.1, 1.06, -10.5, steelK), 'toaster');
+            const breadMat = new THREE.MeshStandardMaterial({ color: 0xe8c48a, roughness: 0.9 });
+            const slices = [-0.08, 0.08].map(dx => mk(new THREE.BoxGeometry(0.025, 0.17, 0.12), breadMat, 1.1 + dx, 1.05, -10.5));
+            const toastMat = new THREE.MeshStandardMaterial({ color: 0xb5763a, roughness: 0.9 });
+            const plateToast = [2.72, 2.88].map(x => { const t = mk(new THREE.BoxGeometry(0.14, 0.03, 0.14), toastMat, x, 0.845, -7.5); t.visible = false; return t; });
+            const bPlate = act(mk(new THREE.CylinderGeometry(0.26, 0.22, 0.03, 24), new THREE.MeshStandardMaterial({ color: 0xf1ece4, roughness: 0.35 }), 2.8, 0.815, -7.6), 'bplate');
+
+            // 🌙 Fases: tutorial (noche) → mensaje → dormir → mañana (misiones)
+            let phase = 'tutorial'; const T = { move: false, look: false, lamp: false, q: null }; let lampOn = true;
+            glassMat.color.setRGB(0.1, 0.12, 0.24); if (sunBeamMat) sunBeamMat.opacity = 0;
+            act(lampShade, 'lamp'); act(mattress, 'bed');
+            const M = { dishes: 0, eggs: 0, bread: 0, ate: false, t1: 0, t2: 0, done: false };
+            const HUDM = document.getElementById('mission-hud'), pr = document.getElementById('interaction-prompt');
+            const eggTxt = ['🥚 Toma los huevos', '🍳 Ponlos en la sartén', '🍳 Friendo…', '🍽️ Llévalos al plato', '🥚 En el plato ✓'];
+            const breadTxt = ['🍞 Toma el pan', '🍞 Ponlo en la tostadora', '🍞 Tostando…', '🍽️ Llévalo al plato', '🍞 En el plato ✓'];
+            const ck = v => v ? '✅' : '⬜';
+            function mHud() {
+                if (phase !== 'morning') {
+                    const t = (v, s) => `<div>${ck(v)} ${s}</div>`;
+                    HUDM.innerHTML = `<div class="font-fun text-amber-300 text-sm mb-1">${phase === 'tutorial' ? '🎮 Tutorial: controles' : '🌙 Es de noche'}</div>` + (phase === 'tutorial'
+                        ? t(T.move, 'Muévete: <b>W A S D</b> / flechas (o el joystick)') + t(T.look, 'Mira: mueve el <b>mouse</b> (o arrastra / desliza el dedo)') + t(T.lamp, 'Interactúa: <b>clic</b> en la lámpara de la mesita 💡') +
+                          '<div class="text-gray-400 mt-1">El punto blanco es tu mira. El texto de abajo te dice qué puedes hacer.</div>'
+                        : phase === 'phone' ? '<div>📱 Tienes un mensaje nuevo…</div>' : '<div>🛏️ Haz <b>clic en tu cama</b> para dormir hasta mañana.</div>');
+                    return;
+                }
+                HUDM.innerHTML = `<div class="font-fun text-amber-300 text-sm mb-1">📋 Misiones de la mañana</div>` +
+                    `<div>${ck(M.dishes >= 4)} Lavar los platos (${M.dishes}/4)</div><div>${ck(M.ate)} Preparar el desayuno</div>` +
+                    `<div class="text-gray-300 ml-5">${eggTxt[M.eggs]}<br>${breadTxt[M.bread]}${M.eggs === 4 && M.bread === 4 && !M.ate ? '<br>😋 ¡A desayunar! (clic en el plato)' : ''}</div>` +
+                    (M.done ? '<div class="text-green-300 mt-1">🚪 ¡Ya puedes salir al Food Truck!</div>' : '');
+            }
+            function chk() {
+                if (!M.done && M.dishes >= 4 && M.ate) { M.done = true; missionsDone = true; showBannerNotification('✅ ¡Misiones listas! Sal por la puerta para ir a tu Food Truck.'); }
+                mHud();
+            }
+            const labels = (u, k) => ({
+                plate: u.st === 0 ? 'Tomar plato sucio 🍽️' : u.st === 1 ? `Fregar el plato 🧽 (${u.sc}/3)` : 'Plato limpio ✨',
+                eggs: M.eggs === 0 ? 'Tomar huevos 🥚' : 'Huevos 🥚',
+                pan: M.eggs === 1 ? 'Poner los huevos a freír 🍳' : M.eggs === 3 ? 'Llevar los huevos al plato 🍳' : 'Sartén 🍳',
+                bread: M.bread === 0 ? 'Tomar pan 🍞' : 'Pan 🍞',
+                toaster: M.bread === 1 ? 'Poner el pan a tostar 🍞' : M.bread === 3 ? 'Llevar las tostadas al plato 🍞' : 'Tostadora 🍞',
+                bplate: 'Plato del desayuno 🍽️',
+                lamp: lampOn ? 'Apagar la lámpara 💡' : 'Encender la lámpara 💡',
+                bed: phase === 'sleep' ? 'Dormir hasta mañana 🛏️' : 'Tu cama 🛏️'
+            })[k];
+            homeAPI = {
+                show() { HUDM.classList.remove('hidden'); mHud(); },
+                gateMsg: () => phase === 'morning' ? '🍳 Primero termina tus misiones: lava los platos y haz el desayuno en la cocina.' : '🌙 Es de noche, mejor descansa. ¡Mañana empiezas!',
+                start() { phase = 'tutorial'; T.q = camera.quaternion.clone(); showBannerNotification('🎮 Sigue el tutorial de controles (panel de arriba a la izquierda).'); this.show(); },
+                hide() { HUDM.classList.add('hidden'); pr.classList.add('hidden'); },
+                ray() {
+                    raycaster.setFromCamera(mouseCenter, camera);
+                    const hit = raycaster.intersectObjects(homeInteractables, false).find(h => h.object.visible && h.distance < 4.5);
+                    homeHover = hit ? hit.object : null;
+                    if (!hit) return pr.classList.add('hidden');
+                    pr.innerText = labels(homeHover.userData, homeHover.userData.home); pr.classList.remove('hidden');
+                },
+                click() {
+                    if (isShiftPromptActive || isWakingUp || !homeHover || dragDist > 5) return;
+                    if (!controls.isLocked && !fallbackMode && !IS_TOUCH) return;
+                    const m = homeHover, u = m.userData, k = u.home;
+                    if (k === 'lamp') {
+                        lampOn = !lampOn; bedLampLight.visible = lampOn; lampShade.material.emissiveIntensity = lampOn ? 2.0 : 0;
+                        if (!T.lamp) { T.lamp = true; mHud(); }
+                        return;
+                    }
+                    if (k === 'bed') {
+                        if (phase !== 'sleep') return showBannerNotification('🛏️ Aún no tienes sueño.');
+                        phase = 'morning'; HUDM.classList.add('hidden'); document.getElementById('phone-msg').classList.add('hidden');
+                        const eo = document.getElementById('eye-overlay'); eo.classList.remove('hidden', 'opacity-0'); eo.classList.add('opacity-100');
+                        setTimeout(() => {
+                            homeHour = 16.4; setTimeOfDay(homeHour); glassMat.color.setRGB(1.25, 1.2, 1.1); if (sunBeamMat) sunBeamMat.opacity = 0.17;
+                            controls.getObject().position.copy(standingPosition); velocity.set(0, 0, 0);
+                            eo.classList.remove('opacity-100'); eo.classList.add('opacity-0'); setTimeout(() => eo.classList.add('hidden'), 1000);
+                            showBannerNotification('☀️ ¡Buenos días! Hoy empiezas en el food truck, pero antes: lava los platos y haz el desayuno.');
+                            this.show();
+                        }, 1200);
+                        return;
+                    }
+                    if (phase !== 'morning') return showBannerNotification('🌙 Es de noche. Eso es para mañana.');
+                    if (k === 'plate') {
+                        if (u.st === 0) {
+                            if (washing) return showBannerNotification('🧽 Termina de fregar el plato del lavabo.');
+                            washing = m; u.st = 1; m.position.set(-4.3, 1.0, -10.5); foam.visible = true; showBannerNotification('🧽 Haz clic varias veces para fregarlo.');
+                        } else if (u.st === 1) {
+                            u.sc++; u.shake = 0.25; m.material.color.setHex(0x9a7b5a).lerp(_c1.setHex(0xf3f1ec), u.sc / 3);
+                            if (u.sc >= 3) {
+                                u.st = 2; washing = null; foam.visible = false; m.position.set(-3.55 + M.dishes * 0.2, 1.13, -10.5); m.rotation.x = Math.PI / 2; M.dishes++;
+                                showBannerNotification(M.dishes >= 4 ? '✨ ¡Todos los platos están limpios!' : `✨ Plato limpio (${M.dishes}/4)`);
+                            }
+                        }
+                    } else if (k === 'eggs') {
+                        if (M.eggs === 0) { M.eggs = 1; eggs.forEach(e => e.visible = false); showBannerNotification('🥚 Tienes 2 huevos. Ponlos en la sartén.'); }
+                    } else if (k === 'pan') {
+                        if (M.eggs === 1) { M.eggs = 2; M.t1 = 5; panEggs.forEach(e => e.visible = true); showBannerNotification('🍳 Friendo los huevos...'); }
+                        else if (M.eggs === 3) { M.eggs = 4; panEggs.forEach(e => e.visible = false); plateEggs.forEach(e => e.visible = true); }
+                        else if (M.eggs === 0) showBannerNotification('Primero toma los huevos 🥚');
+                    } else if (k === 'bread') {
+                        if (M.bread === 0) { M.bread = 1; showBannerNotification('🍞 Tienes 2 rebanadas. Ponlas en la tostadora.'); }
+                    } else if (k === 'toaster') {
+                        if (M.bread === 1) { M.bread = 2; M.t2 = 4; showBannerNotification('🍞 Tostando...'); }
+                        else if (M.bread === 3) { M.bread = 4; slices.forEach(s => s.visible = false); plateToast.forEach(s => s.visible = true); }
+                        else if (M.bread === 0) showBannerNotification('Primero toma el pan 🍞');
+                    } else if (k === 'bplate') {
+                        if (M.eggs === 4 && M.bread === 4) { if (!M.ate) { M.ate = true; showBannerNotification('😋 ¡Qué rico desayuno!'); } }
+                        else showBannerNotification('Falta algo en el plato: huevos 🥚 y tostadas 🍞');
+                    }
+                    chk();
+                },
+                update(dt) {
+                    if (phase === 'tutorial') {
+                        let ch = false;
+                        if (!T.move && (moveForward || moveBackward || moveLeft || moveRight || joyX || joyY)) { T.move = ch = true; }
+                        if (!T.look && T.q && T.q.angleTo(camera.quaternion) > 0.5) { T.look = ch = true; }
+                        if (ch) mHud();
+                        if (T.move && T.look && T.lamp) {
+                            phase = 'phone'; mHud(); showBannerNotification('✅ ¡Tutorial completo!');
+                            setTimeout(() => {
+                                const pm = document.getElementById('phone-msg'); pm.classList.remove('hidden');
+                                phase = 'sleep'; mHud(); showBannerNotification('📱 ¡Te llegó un mensaje! Luego haz clic en tu cama para dormir.');
+                                setTimeout(() => pm.classList.add('hidden'), 12000);
+                            }, 1800);
+                        }
+                    }
+                    if (M.eggs === 2 && (M.t1 -= dt) <= 0) { M.eggs = 3; showBannerNotification('🍳 ¡Huevos listos! Llévalos al plato.'); chk(); }
+                    if (M.bread === 2 && (M.t2 -= dt) <= 0) { M.bread = 3; slices.forEach(s => s.position.y = 1.2); breadMat.color.setHex(0xb5763a); showBannerNotification('🍞 ¡Tostadas listas! Llévalas al plato.'); chk(); }
+                    plates.forEach(p => { const u = p.userData; if (u.shake > 0) { u.shake -= dt; if (u.st === 1) p.position.x = -4.3 + (u.shake > 0 ? Math.sin(u.shake * 70) * 0.03 : 0); } });
+                }
+            };
+
+            // ✨ Cielo, mano y post-procesado
+            buildSky();
+            buildHand();
+
+            // --- BUILD ENHANCED INTERACTIVE FOOD TRUCK KITCHEN ---
+            buildFoodTruckKitchen();
+            foodTruckGroup.position.set(drive.x, 0, drive.z); foodTruckGroup.rotation.y = drive.th; // estacionado afuera, hay que conducirlo
+            setSceneLights('HOME');
+            scene.background = null;
+            setupPost();
+
+            // Modal interactions
+            const shiftModal = document.getElementById('shift-modal');
+            const btnCancel = document.getElementById('btn-cancel-shift');
+            const btnConfirm = document.getElementById('btn-confirm-shift');
+
+            btnCancel.addEventListener('click', () => {
+                shiftModal.classList.add('hidden');
+                isShiftPromptActive = false;
+                controls.getObject().position.z = 4.2;
+                if (!isTouchDevice) safeLock();
+            });
+
+            btnConfirm.addEventListener('click', () => {
+                shiftModal.classList.add('hidden');
+                isShiftPromptActive = false;
+
+                // Teleport sequence to Food Truck Kitchen
+                startDriving(isTouchDevice);
+            });
+
+            const onKeyDown = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': moveForward = true; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': moveLeft = true; break;
+                    case 'ArrowDown':
+                    case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight':
+                    case 'KeyD': moveRight = true; break;
+                }
+            };
+
+            const onKeyUp = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': moveForward = false; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': moveLeft = false; break;
+                    case 'ArrowDown':
+                    case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight':
+                    case 'KeyD': moveRight = false; break;
+                }
+            };
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // --- Joystick virtual (mover) ---
+            const joyBase = document.getElementById('mobile-controls');
+            const joyKnob = document.getElementById('joy-knob');
+            let joyId = null;
+            const joyUpdate = (t) => {
+                const r = joyBase.getBoundingClientRect();
+                let dx = t.clientX - (r.left + r.width / 2), dy = t.clientY - (r.top + r.height / 2);
+                const max = 45, len = Math.hypot(dx, dy);
+                if (len > max) { dx = dx / len * max; dy = dy / len * max; }
+                joyKnob.style.transform = `translate(${dx}px,${dy}px)`;
+                const nx = dx / max, ny = -dy / max;
+                joyX = Math.abs(nx) < 0.12 ? 0 : nx;
+                joyY = Math.abs(ny) < 0.12 ? 0 : ny;
+            };
+            const joyReset = () => { joyId = null; joyX = joyY = 0; joyKnob.style.transform = 'translate(0,0)'; };
+            joyBase.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (joyId !== null) return;
+                joyId = e.changedTouches[0].identifier;
+                joyUpdate(e.changedTouches[0]);
+            }, { passive: false });
+
+            // --- Mirar arrastrando el dedo (cámara normal, sin inclinarse) ---
+            let lookId = null, lookX = 0, lookY = 0;
+            const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+            const noLook = '#mobile-controls, button, #pc-overlay, #shift-modal, #instructions, #recipe-hud';
+            document.addEventListener('touchstart', (e) => {
+                if (isShiftPromptActive || isWakingUp || isPCOpen || lookId !== null) return;
+                for (const t of e.changedTouches) {
+                    if (t.target.closest && t.target.closest(noLook)) continue;
+                    lookId = t.identifier; lookX = t.clientX; lookY = t.clientY; dragDist = 0; break;
+                }
+            });
+            document.addEventListener('touchmove', (e) => {
+                for (const t of e.changedTouches) {
+                    if (t.identifier === joyId) { joyUpdate(t); e.preventDefault(); }
+                    else if (t.identifier === lookId && !isPCOpen && !isShiftPromptActive && !isWakingUp) {
+                        const dx = t.clientX - lookX, dy = t.clientY - lookY;
+                        lookX = t.clientX; lookY = t.clientY; dragDist += Math.abs(dx) + Math.abs(dy);
+                        lookEuler.setFromQuaternion(camera.quaternion);
+                        lookEuler.y -= dx * 0.005;
+                        lookEuler.x = Math.max(-1.5, Math.min(1.5, lookEuler.x - dy * 0.005));
+                        lookEuler.z = 0;
+                        camera.quaternion.setFromEuler(lookEuler);
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+            const touchEnd = (e) => {
+                for (const t of e.changedTouches) {
+                    if (t.identifier === joyId) joyReset();
+                    if (t.identifier === lookId) lookId = null;
+                }
+            };
+            document.addEventListener('touchend', touchEnd);
+            document.addEventListener('touchcancel', touchEnd);
+
+            // Mirar arrastrando el mouse + reintento de bloqueo con un clic (respaldo de Pointer Lock)
+            let lockFails = 0, dragging = false, lastX = 0, lastY = 0;
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            document.addEventListener('pointerlockerror', () => {
+                lockFails++;
+                if (!fallbackMode && !isTouchDevice) lockFailedNotice(); else enableFallback();
+            });
+            window.addEventListener('mousedown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; dragDist = 0; });
+            window.addEventListener('mouseup', () => { dragging = false; });
+            window.addEventListener('mousemove', (e) => {
+                if (!dragging || !fallbackMode || controls.isLocked || isShiftPromptActive || isWakingUp || isPCOpen) return;
+                const dx = e.clientX - lastX, dy = e.clientY - lastY;
+                lastX = e.clientX; lastY = e.clientY; dragDist += Math.abs(dx) + Math.abs(dy);
+                euler.setFromQuaternion(camera.quaternion);
+                euler.y -= dx * 0.004;
+                euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x - dy * 0.004));
+                camera.quaternion.setFromEuler(euler);
+            });
+            window.addEventListener('click', (e) => {
+                if (hasStarted && !isTouchDevice && !controls.isLocked && dragDist < 5 && lockFails < 4 &&
+                    e.target.tagName !== 'BUTTON' && !isShiftPromptActive && !isWakingUp && !isPCOpen) {
+                    try { controls.lock(); } catch (err) { enableFallback(); }
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // --- DETAILED FOOD TRUCK CONSTRUCTOR & INGREDIENT SYSTEM ---
+        let fridgeTarget = -Math.PI / 1.8;
+        function buildFoodTruckKitchen() {
+            foodTruckGroup = new THREE.Group();
+            foodTruckGroup.position.set(50, 0, 50); // Far away location
+            foodTruckGroup.scale.set(TRUCK_SCALE, TRUCK_HEIGHT, TRUCK_SCALE);
+
+            // Steel/Kitchen Materials (✨ con reflejos)
+            const interiorWallMat = new THREE.MeshStandardMaterial({ color: 0xe4e2dc, map: truckTex('tile'), roughness: 0.45 });
+            shiny(interiorWallMat, 0.08);
+            const stainlessSteelMat = shiny(new THREE.MeshStandardMaterial({ color: 0xffffff, color: 0xcfd4d8, map: truckTex('steel'), roughness: 0.3, metalness: 0.75 }), 0.7);
+            const grillMat = shiny(new THREE.MeshStandardMaterial({ color: 0xffffff, map: truckTex('grill'), roughness: 0.55, metalness: 0.6 }), 0.6);
+            const recv = (m) => { m.receiveShadow = true; return m; };
+
+            // Food Truck Shell
+            const floorGeo = new THREE.BoxGeometry(2.8, 0.1, 5.5);
+            const floorMat = shiny(new THREE.MeshStandardMaterial({ color: 0xffffff, map: truckTex('floor'), bumpMap: truckTex('floor'), bumpScale: 0.6, roughness: 0.5, metalness: 0.35 }), 0.5);
+            const floor = recv(new THREE.Mesh(floorGeo, floorMat));
+            foodTruckGroup.add(floor);
+
+            const ceilingGeo = new THREE.BoxGeometry(2.8, 0.1, 5.5);
+            const ceiling = new THREE.Mesh(ceilingGeo, interiorWallMat);
+            ceiling.position.set(0, 2.5 + TRUCK_EXTRA_H, 0);
+            foodTruckGroup.add(ceiling);
+            // ✨ Tubos de luz en el techo (brillan) en vez de tres focos invisibles
+            const tubeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4dc, emissiveIntensity: 4.5 });
+            [-1.5, 1.5].forEach(z => { const tb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 1.4), tubeMat); tb.position.set(0, 2.43 + TRUCK_EXTRA_H, z); foodTruckGroup.add(tb); });
+
+            // Interior Truck Lights (✨ 2 en vez de 3: más rápido, mismo brillo)
+            const truckLight1 = new THREE.PointLight(0xfff3df, 1.05, 13);
+            truckLight1.position.set(0, 2.3 + TRUCK_EXTRA_H * 0.6, -1.3);
+            foodTruckGroup.add(truckLight1); truckLights.push(truckLight1);
+
+            const truckLight2 = new THREE.PointLight(0xfff3df, 1.05, 13);
+            truckLight2.position.set(0, 2.3 + TRUCK_EXTRA_H * 0.6, 1.3);
+            foodTruckGroup.add(truckLight2); truckLights.push(truckLight2);
+
+            // Walls
+            const backWall = recv(new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.4 + TRUCK_EXTRA_H, 5.5), interiorWallMat));
+            backWall.position.set(-1.35, 1.2 + TRUCK_EXTRA_H / 2, 0);
+            foodTruckGroup.add(backWall);
+
+            const hatchBottom = recv(new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 5.5), interiorWallMat));
+            hatchBottom.position.set(1.35, 0.5, 0);
+            foodTruckGroup.add(hatchBottom);
+
+            const hatchTop = recv(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5 + TRUCK_EXTRA_H, 5.5), interiorWallMat));
+            hatchTop.position.set(1.35, 2.25 + TRUCK_EXTRA_H / 2, 0);
+            foodTruckGroup.add(hatchTop);
+
+            const driverWall = recv(new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.4 + TRUCK_EXTRA_H, 0.1), interiorWallMat));
+            driverWall.position.set(0, 1.2 + TRUCK_EXTRA_H / 2, -2.75);
+            foodTruckGroup.add(driverWall);
+
+            // Pared trasera con hueco para la puerta de salida a la calle
+            const WH = 2.4 + TRUCK_EXTRA_H;
+            const rearWall = recv(new THREE.Mesh(new THREE.BoxGeometry(0.9, WH, 0.1), interiorWallMat));
+            rearWall.position.set(-0.95, WH / 2, 2.75);
+            foodTruckGroup.add(rearWall);
+            const rearWall2 = recv(new THREE.Mesh(new THREE.BoxGeometry(0.9, WH, 0.1), interiorWallMat));
+            rearWall2.position.set(0.95, WH / 2, 2.75);
+            foodTruckGroup.add(rearWall2);
+            const rearLintel = new THREE.Mesh(new THREE.BoxGeometry(1.0, WH - 2.1, 0.1), interiorWallMat);
+            rearLintel.position.set(0, 2.1 + (WH - 2.1) / 2, 2.75);
+            foodTruckGroup.add(rearLintel);
+            // Hoja de la puerta (se abre sola hacia la calle al acercarte)
+            truckDoor = new THREE.Group(); truckDoor.position.set(-0.5, 0, 2.75);
+            const tdLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.08, 0.06), shiny(new THREE.MeshStandardMaterial({ color: 0xd9dee2, map: truckTex('steel'), roughness: 0.35, metalness: 0.5 }), 0.8));
+            tdLeaf.position.set(0.5, 1.04, 0); tdLeaf.castShadow = true; truckDoor.add(tdLeaf);
+            const tdWin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.08), shiny(new THREE.MeshStandardMaterial({ color: 0x9ad1ff, roughness: 0.05, metalness: 0.3 }), 1.2));
+            tdWin.position.set(0.5, 1.45, 0); truckDoor.add(tdWin);
+            const tdKnob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), shiny(new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.25 }), 1.2));
+            tdKnob.position.set(0.88, 1.0, 0.06); truckDoor.add(tdKnob);
+            foodTruckGroup.add(truckDoor);
+
+            // Canopy outside
+            const canopyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: truckTex('canopy'), roughness: 0.6 });
+            const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 3.5), canopyMat);
+            canopy.position.set(1.9, 2.0, 0);
+            canopy.rotation.z = -0.15; canopy.castShadow = true;
+            foodTruckGroup.add(canopy);
+
+            // --- REFRIGERATOR (REFRIGERADOR CON INGREDIENTES) ---
+            const fridgeGroup = new THREE.Group();
+            fridgeGroup.position.set(-0.95, 1.0, -2.1); // At rear back wall
+
+            // Main Fridge Body (White/Silver Appliance)
+            const fridgeBodyMat = shiny(new THREE.MeshStandardMaterial({ color: 0xdde3ea, roughness: 0.22, metalness: 0.65 }), 1.0);
+            // Refrigerador hueco (abierto por el lado del pasillo) para ver el interior
+            const inMat = new THREE.MeshStandardMaterial({ color: 0xc9d3dc, roughness: 0.55, metalness: 0.1 });
+            const addPanel = (w, h, d, x, y, z, mat = inMat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); fridgeGroup.add(m); return m; };
+            addPanel(0.04, 2.35, 0.85, -0.355, 0.225, 0);      // fondo
+            addPanel(0.75, 0.04, 0.85, 0, 1.38, 0);       // techo
+            addPanel(0.75, 0.04, 0.85, 0, -0.93, 0);      // piso
+            addPanel(0.75, 2.35, 0.04, 0, 0.225, 0.405);       // lado
+            addPanel(0.75, 2.35, 0.04, 0, 0.225, -0.405);      // lado
+            addPanel(0.02, 2.1, 0.5, -0.33, 0.225, 0, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xcfefff, emissiveIntensity: 3.2 })); // franja de luz (✨ brilla)
+            addPanel(0.65, 0.02, 0.7, 0.02, -0.8, 0, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, transparent: true, opacity: 0.7 })); // estante de tomates
+            const hiShelf = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, transparent: true, opacity: 0.7 });
+            addPanel(0.65, 0.02, 0.7, 0.02, 0.8, 0, hiShelf); addPanel(0.65, 0.02, 0.7, 0.02, 1.2, 0, hiShelf); // estantes altos
+
+            // Interior Fridge Light
+            const fridgeLight = new THREE.PointLight(0xdff2ff, 0.55, 3.5);
+            fridgeLight.position.set(0.1, 0.3, 0);
+            fridgeGroup.add(fridgeLight); truckLights.push(fridgeLight);
+
+            // Refrigerator Shelves
+            const shelfMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, transparent: true, opacity: 0.7 });
+            for (let s = -0.4; s <= 0.4; s += 0.4) {
+                const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.02, 0.7), shelfMat);
+                shelf.position.set(0.02, s, 0);
+                fridgeGroup.add(shelf);
+            }
+
+            // Fridge Door (Hinged to rotate open)
+            fridgeDoorGroup = new THREE.Group();
+            fridgeDoorGroup.position.set(0.375, 0, 0.425); // Hinge pivot point
+
+            const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.33, 0.85), fridgeBodyMat);
+            doorMesh.position.set(0, 0.225, -0.425);
+            fridgeDoorGroup.add(doorMesh);
+
+            // Fridge Door Handle
+            const handleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.04), stainlessSteelMat);
+            handleMesh.position.set(0.05, 0, -0.75);
+            fridgeDoorGroup.add(handleMesh);
+
+            // Door Mesh interactable
+            doorMesh.userData = { type: 'FRIDGE_DOOR' };
+            interactableObjects.push(doorMesh);
+
+            // Set initial state to open so interior is visible
+            fridgeDoorGroup.rotation.y = fridgeTarget;
+
+            fridgeGroup.add(fridgeDoorGroup);
+            foodTruckGroup.add(fridgeGroup);
+
+            // --- INGREDIENTES (2 por material; la computadora los restablece) ---
+            restockAll();
+
+            // --- COOKING & SERVICE COUNTERS ---
+
+            // Cooking Counter (Left side)
+            const cookCounter = recv(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 2.5), stainlessSteelMat));
+            cookCounter.position.set(-0.95, 0.45, 0.8);
+            foodTruckGroup.add(cookCounter);
+
+            // Flat Grill Station (Plancha de Cocción)
+            const grillBase = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 1.2), grillMat);
+            grillBase.position.set(-0.95, 0.94, 0.2);
+            grillBase.userData = { type: 'GRILL' };
+            interactableObjects.push(grillBase);
+            foodTruckGroup.add(grillBase);
+            // ✨ brillo naranja bajo la plancha (está caliente)
+            const heat = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.012, 1.22), new THREE.MeshStandardMaterial({ color: 0x200800, emissive: 0xff5a14, emissiveIntensity: 2.6 }));
+            heat.position.set(-0.95, 0.895, 0.2); foodTruckGroup.add(heat);
+
+            // --- SERVICE HATCH & BURGER PLATE (PLATO DE PEDIDOS) ---
+            const serviceCounter = recv(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 4.0), stainlessSteelMat));
+            serviceCounter.position.set(0.95, 0.45, 0);
+            foodTruckGroup.add(serviceCounter);
+
+            // Customer Order Plate (Plato donde se arma la hamburguesa)
+            plateGroup = new THREE.Group();
+            plateGroup.position.set(0.9, 0.9, 0);
+
+            const plateMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.03, 24), shiny(new THREE.MeshStandardMaterial({ color: 0xffffff, map: truckTex('plate'), color: 0xdedede, roughness: 0.35 }), 0.15));
+            plateMesh.position.y = 0.015;
+            plateMesh.userData = { type: 'PLATE' };
+            interactableObjects.push(plateMesh);
+            plateGroup.add(plateMesh);
+
+            foodTruckGroup.add(plateGroup);
+
+            // Cash Register next to Plate
+            const register = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.35), shiny(new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.4 }), 0.8));
+            register.position.set(0.9, 1.0, 1.4);
+            foodTruckGroup.add(register);
+
+            // Soda Dispenser
+            const sodaMachine = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.7), shiny(new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.3, metalness: 0.3 }), 0.8));
+            sodaMachine.position.set(0.9, 1.2, -1.2);
+            foodTruckGroup.add(sodaMachine);
+
+            // Condiment Bottles
+            const ketchup = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.2, 12), shiny(new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.25 }), 0.6));
+            ketchup.position.set(0.9, 0.98, -0.4);
+            foodTruckGroup.add(ketchup);
+
+            const mustard = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.2, 12), shiny(new THREE.MeshStandardMaterial({ color: 0xffb703, roughness: 0.25 }), 0.6));
+            mustard.position.set(0.9, 0.98, -0.52);
+            foodTruckGroup.add(mustard);
+
+            // --- COMPUTADORA DE INVENTARIO (mostrador de entrega de pedidos) ---
+            const pcMat = shiny(new THREE.MeshStandardMaterial({ color: 0x1b1f24, roughness: 0.35, metalness: 0.4 }), 0.6);
+            const pcBase = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.16), pcMat); pcBase.position.set(0.95, 0.91, 0.85); foodTruckGroup.add(pcBase);
+            const pcNeck = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.04), pcMat); pcNeck.position.set(0.95, 0.98, 0.85); foodTruckGroup.add(pcNeck);
+            const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.42), pcMat); monitor.position.set(0.93, 1.16, 0.85);
+            monitor.userData = { type: 'COMPUTER' }; foodTruckGroup.add(monitor); interactableObjects.push(monitor);
+            const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.015, 0.3), pcMat); keyboard.position.set(0.78, 0.9075, 0.85);
+            keyboard.userData = { type: 'COMPUTER' }; foodTruckGroup.add(keyboard); interactableObjects.push(keyboard);
+            screenCanvas = document.createElement('canvas'); screenCanvas.width = 512; screenCanvas.height = 360;
+            screenTex = new THREE.CanvasTexture(screenCanvas);
+            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.28), new THREE.MeshBasicMaterial({ map: screenTex, color: new THREE.Color(1.3, 1.3, 1.3) }));
+            screenMesh.position.set(0.909, 1.16, 0.85); screenMesh.rotation.y = -Math.PI / 2;
+            screenMesh.userData = { type: 'COMPUTER' }; foodTruckGroup.add(screenMesh); interactableObjects.push(screenMesh);
+            const pcGlow = new THREE.PointLight(0x66ccff, 0.5, 2.5); pcGlow.position.set(0.6, 1.2, 0.85); foodTruckGroup.add(pcGlow); truckLights.push(pcGlow);
+            updateComputerScreen();
+
+            buildTruckExterior();
+            // 🚚 Partes que se estiran (piso, techo, paredes largas) o se corren hacia atrás (pared trasera, puerta, ruedas de atrás)
+            foodTruckGroup.updateMatrixWorld(true);
+            foodTruckGroup.children.forEach(o => {
+                if (o.userData.type === 'INGREDIENT') return;
+                const b = new THREE.Box3().setFromObject(o); if (b.isEmpty()) return;
+                const z0 = (b.min.z - 50) / TRUCK_SCALE, z1 = (b.max.z - 50) / TRUCK_SCALE;
+                if (z1 - z0 > 4.5) truckParts.push({ o, mode: 'stretch', z: o.position.z, len: z1 - z0 });
+                else if ((z0 + z1) / 2 > 1.65) truckParts.push({ o, mode: 'rear', z: o.position.z });
+            });
+            [-0.95, 0.95].forEach(x => { // mostrador nuevo en la parte ampliada
+                const a = recv(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 1), stainlessSteelMat));
+                a.position.set(x, 0.45, 2.05); a.visible = false; foodTruckGroup.add(a); truckParts.push({ o: a, mode: 'annex', z: 2.05 });
+            });
+            buildTruckSurroundings();
+            fillQueue(true);
+
+            scene.add(foodTruckGroup);
+        }
+
+        function applyTruckExt() {
+            truckExt = 1.4 * upg.space;
+            truckParts.forEach(p => {
+                if (p.mode === 'stretch') { p.o.scale.z = 1 + truckExt / p.len; p.o.position.z = p.z + truckExt / 2; }
+                else if (p.mode === 'rear') p.o.position.z = p.z + truckExt;
+                else { p.o.visible = truckExt > 0; p.o.scale.z = Math.max(truckExt, 0.01); p.o.position.z = p.z + truckExt / 2; }
+            });
+        }
+
+        // --- INVENTARIO: 2 unidades por material ---
+        function stockCount(type) {
+            return interactableObjects.filter(o => o.userData.ingredientType === type).length;
+        }
+        function restockAll() {
+            let added = 0;
+            for (const type in INGREDIENT_DEFS) {
+                const d = INGREDIENT_DEFS[type];
+                for (let slot = 0; slot < MAX_STOCK; slot++) {
+                    const taken = interactableObjects.some(o => o.userData.ingredientType === type && o.userData.slot === slot);
+                    if (taken) continue;
+                    const m = new THREE.Mesh(d.geo(), foodMat(type));
+                    m.position.set(...d.pos(slot));
+                    m.castShadow = true;
+                    m.userData = { type: 'INGREDIENT', ingredientType: type, label: d.label, slot };
+                    foodTruckGroup.add(m);
+                    interactableObjects.push(m);
+                    added++;
+                }
+            }
+            updateComputerScreen();
+            return added;
+        }
+        function updateComputerScreen() {
+            if (!screenCanvas) return;
+            const c = screenCanvas.getContext('2d');
+            c.fillStyle = '#0b1d33'; c.fillRect(0, 0, 512, 360);
+            c.fillStyle = '#7fd4ff'; c.font = 'bold 30px sans-serif'; c.fillText('INVENTARIO', 20, 42);
+            c.font = '26px sans-serif';
+            let y = 90;
+            for (const type in INGREDIENT_DEFS) {
+                const n = stockCount(type);
+                c.fillStyle = n === 0 ? '#ff6b6b' : '#b8f5c0';
+                c.fillText(INGREDIENT_DEFS[type].label, 20, y);
+                c.fillText(`${n}/${MAX_STOCK}`, 420, y);
+                y += 38;
+            }
+            c.fillStyle = '#ffd166'; c.font = '20px sans-serif'; c.fillText('Clic para usar la computadora', 20, 345);
+            screenTex.needsUpdate = true;
+        }
+
+        // --- INTERACTION LOGIC & ITEM PICKUP ---
+        function handleWorldInteraction(e) {
+            // el clic en la computadora (p. ej. en la ✕) no debe volver a activar objetos del mundo
+            if (e && e.target && e.target.closest && e.target.closest('#pc-overlay')) return;
+            if (currentScene === 'HOME') { if (homeAPI) homeAPI.click(); return; }
+            if (currentScene !== 'FOOD_TRUCK' || isShiftPromptActive || isWakingUp || !hoveredObject || dragDist > 5 || isPCOpen) return;
+
+            const data = hoveredObject.userData;
+
+            // 1. Open/Close Fridge Door (✨ ahora se abre con animación)
+            if (data.type === 'FRIDGE_DOOR') {
+                isFridgeOpen = !isFridgeOpen;
+                fridgeTarget = isFridgeOpen ? -Math.PI / 1.8 : 0;
+                return;
+            }
+
+            // Cliente: entregar la hamburguesa del plato
+            if (data.type === 'CLIENT') { serveCustomer(data.customer); return; }
+            if (data.type === 'DELIVERY') { collectDelivery(); return; }
+
+            // Computadora: abrir el escritorio
+            if (data.type === 'COMPUTER') { openPC(); return; }
+
+            // 2. Pickup Ingredient from Fridge or Counter
+            if (data.type === 'INGREDIENT') {
+                if (heldItem) {
+                    showBannerNotification("¡Ya tienes un ingrediente en la mano! Suéltalo o colócalo antes.");
+                    return;
+                }
+                pickUpItem(hoveredObject);
+                return;
+            }
+
+            // 3. Place Raw Patty on Grill to Cook
+            if (data.type === 'GRILL') {
+                if (heldItem && heldItem.type === 'CARNE_CRUDA') {
+                    cookPattyOnGrill();
+                } else if (!heldItem) {
+                    // Check if there is a cooked patty ready to pick up
+                    const cooked = grillPatties.find(p => p.isCooked);
+                    if (cooked) {
+                        pickUpCookedPatty(cooked);
+                    } else {
+                        showBannerNotification("Coloca Carne Cruda en la plancha para cocinarla.");
+                    }
+                }
+                return;
+            }
+
+            // 4. Place Ingredient on Customer Plate (Assembly)
+            if (data.type === 'PLATE') {
+                if (heldItem) {
+                    placeItemOnPlate();
+                } else {
+                    showBannerNotification("Sostén un ingrediente para colocarlo en el plato.");
+                }
+                return;
+            }
+        }
+
+        function pickUpItem(mesh) {
+            heldItem = {
+                type: mesh.userData.ingredientType,
+                label: mesh.userData.label
+            };
+
+            // Remove mesh from world scene and interactables
+            scene.remove(mesh);
+            foodTruckGroup.remove(mesh);
+            const index = interactableObjects.indexOf(mesh);
+            if (index > -1) interactableObjects.splice(index, 1);
+
+            updateHeld3DMesh();
+            updateHoldingUI();
+            updateComputerScreen();
+        }
+
+        // ✨ El ingrediente ahora va EN la mano (antes flotaba frente a la cámara)
+        function updateHeld3DMesh() {
+            if (heldItemMesh) {
+                handSocket.remove(heldItemMesh);
+                heldItemMesh = null;
+            }
+            handPop = 1;
+            if (!heldItem) { handGroup.visible = false; return; }
+
+            let geo;
+            if (heldItem.type.includes('PAN')) {
+                geo = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
+            } else if (heldItem.type === 'QUESO') {
+                geo = new THREE.BoxGeometry(0.12, 0.01, 0.12);
+            } else {
+                geo = new THREE.CylinderGeometry(0.07, 0.07, 0.02, 16);
+            }
+
+            heldItemMesh = new THREE.Mesh(geo, foodMat(heldItem.type));
+            heldItemMesh.position.set(0, 0.012, 0);
+            handSocket.add(heldItemMesh);
+            handGroup.visible = true;
+        }
+
+        function cookPattyOnGrill() {
+            heldItem = null;
+            updateHeld3DMesh();
+            updateHoldingUI();
+
+            const pattyMat = foodMat('CARNE_CRUDA');
+            const pattyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.035, 16), pattyMat);
+
+            // Random offset on grill surface
+            const offsetZ = 0.2 + (Math.random() * 0.4 - 0.2);
+            pattyMesh.position.set(-0.95, 0.99, offsetZ);
+            pattyMesh.userData = { type: 'COOKING_PATTY' };
+
+            foodTruckGroup.add(pattyMesh);
+
+            const pattyObj = { mesh: pattyMesh, rawTime: 0, isCooked: false };
+            grillPatties.push(pattyObj);
+
+            showBannerNotification("🔥 Cocinando carne en la plancha...");
+
+            // Timer to finish cooking (3.5 seconds)
+            setTimeout(() => {
+                pattyObj.isCooked = true;
+                pattyMesh.material = foodMat('CARNE_COCINADA');
+                showBannerNotification("✨ ¡Carne Cocinada! Haz click en la plancha para tomarla.");
+            }, 3500);
+        }
+
+        function pickUpCookedPatty(cookedObj) {
+            heldItem = {
+                type: 'CARNE_COCINADA',
+                label: 'Carne Cocinada 🥩'
+            };
+
+            foodTruckGroup.remove(cookedObj.mesh);
+            const idx = grillPatties.indexOf(cookedObj);
+            if (idx > -1) grillPatties.splice(idx, 1);
+
+            updateHeld3DMesh();
+            updateHoldingUI();
+        }
+
+        function placeItemOnPlate() {
+            if (!heldItem) return;
+
+            const stackHeight = burgerStack.reduce((acc, curr) => acc + curr.height, 0);
+
+            let itemHeight = 0.025;
+            let geo;
+
+            if (heldItem.type.includes('PAN')) {
+                itemHeight = 0.05;
+                geo = new THREE.CylinderGeometry(0.12, 0.12, itemHeight, 16);
+            } else if (heldItem.type === 'QUESO') {
+                itemHeight = 0.015;
+                geo = new THREE.BoxGeometry(0.2, itemHeight, 0.2);
+            } else {
+                itemHeight = 0.03;
+                geo = new THREE.CylinderGeometry(0.11, 0.11, itemHeight, 16);
+            }
+
+            const mat = foodMat(heldItem.type);
+            const layerMesh = new THREE.Mesh(geo, mat);
+            layerMesh.castShadow = true;
+
+            layerMesh.position.set(0, 0.03 + stackHeight + (itemHeight / 2), 0);
+            if (heldItem.type === 'QUESO') layerMesh.rotation.y = Math.random() * 0.8;
+            plateGroup.add(layerMesh);
+
+            burgerStack.push({ type: heldItem.type, height: itemHeight });
+            updateRecipeHUD();
+
+            showBannerNotification(`Añadido ${heldItem.label} al plato.`);
+            const placedType = heldItem.type;
+
+            // Reset hand
+            heldItem = null;
+            updateHeld3DMesh();
+            updateHoldingUI();
+
+            // ✨ Solo dice "lista" si la hamburguesa coincide con una receta del menú
+            if (placedType === 'PAN_ARRIBA') {
+                const match = RECIPES.find(r => r.s.length === burgerStack.length && r.s.every((t, i) => t === burgerStack[i].type));
+                showBannerNotification(match ? `🍔 ¡${match.n} lista para servir!` : '🤔 Esa combinación no está en el menú. Revisa las recetas.');
+            }
+        }
+
+        function dropHeldItem() {
+            if (!heldItem) return;
+            showBannerNotification(`Desechado: ${heldItem.label}`);
+            heldItem = null;
+            updateHeld3DMesh();
+            updateHoldingUI();
+        }
+
+        function updateHoldingUI() {
+            const ui = document.getElementById('holding-ui');
+            const nameSpan = document.getElementById('holding-item-name');
+
+            if (heldItem) {
+                ui.classList.remove('hidden');
+                nameSpan.innerText = heldItem.label;
+            } else {
+                ui.classList.add('hidden');
+            }
+        }
+
+        // ✨ El aviso aparece y se esconde solo
+        let bannerTimer = null;
+        function showBannerNotification(text) {
+            const banner = document.getElementById('job-banner');
+            banner.innerText = text;
+            banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+            clearTimeout(bannerTimer);
+            bannerTimer = setTimeout(() => banner.classList.remove('show'), 2600 + text.length * 35);
+        }
+
+        // Raycasting for Interaction Prompts
+        function checkInteractionRaycast() {
+            if (currentScene !== 'FOOD_TRUCK') return;
+
+            raycaster.setFromCamera(mouseCenter, camera);
+            const intersects = raycaster.intersectObjects(interactableObjects, false);
+
+            const prompt = document.getElementById('interaction-prompt');
+
+            if (intersects.length > 0 && intersects[0].distance < 7.5) {
+                hoveredObject = intersects[0].object;
+                const data = hoveredObject.userData;
+
+                let labelText = "Interactuar";
+
+                if (data.type === 'FRIDGE_DOOR') labelText = isFridgeOpen ? "Cerrar Refrigerador ❄️" : "Abrir Refrigerador ❄️";
+                else if (data.type === 'INGREDIENT') labelText = `Tomar ${data.label}`;
+                else if (data.type === 'COMPUTER') labelText = "Usar la computadora 💻";
+                else if (data.type === 'CLIENT') labelText = custLabel(data.customer);
+                else if (data.type === 'DELIVERY') labelText = 'Recibir materiales 📦';
+                else if (data.type === 'GRILL') {
+                    if (heldItem && heldItem.type === 'CARNE_CRUDA') labelText = "Poner Carne a Cocinar 🔥";
+                    else labelText = "Plancha de Cocción 🔥";
+                } else if (data.type === 'PLATE') {
+                    labelText = heldItem ? `Colocar ${heldItem.label} en el plato 🍽️` : "Plato de Hamburguesa 🍽️";
+                }
+
+                prompt.innerText = labelText;
+                prompt.classList.remove('hidden');
+            } else {
+                hoveredObject = null;
+                prompt.classList.add('hidden');
+            }
+        }
+
+        // Teleportation transition to Food Truck
+        function teleportToFoodTruck(isTouchDevice) {
+            const eyeOverlay = document.getElementById('eye-overlay');
+            const mobileControls = document.getElementById('mobile-controls');
+            const crosshair = document.getElementById('crosshair');
+
+            // Fade to black
+            eyeOverlay.classList.remove('hidden', 'opacity-0');
+            eyeOverlay.classList.add('opacity-100');
+
+            setTimeout(() => {
+                currentScene = 'FOOD_TRUCK';
+                setSceneLights('FOOD_TRUCK'); // ✨ apaga las luces de la casa y prende las del truck
+                if (homeAPI) homeAPI.hide();
+
+                // Move camera inside Food Truck Kitchen aisle
+                camera.position.set(50, TRUCK_EYE, 50);
+                camera.rotation.set(0, -Math.PI / 2, 0); // Facing service hatch counter
+
+                // Show Food Truck notification banner
+                showBannerNotification("🍔 ¡Bienvenido! Abre la nevera para tomar carne, queso, tomate y lechuga.");
+
+                // Fade back in
+                setTimeout(() => {
+                    eyeOverlay.classList.remove('opacity-100');
+                    eyeOverlay.classList.add('opacity-0');
+
+                    if (!isTouchDevice) {
+                        safeLock();
+                    } else {
+                        if (mobileControls) mobileControls.classList.remove('hidden');
+                        if (crosshair) crosshair.classList.remove('hidden');
+                    }
+                }, 500);
+
+            }, 1000);
+        }
+
+        // 🚚 CONDUCIR EL FOOD TRUCK hasta el recuadro de trabajo (50, 50)
+        function buildDriveZone() {
+            const m = new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.3, depthWrite: false, fog: false });
+            const z = new THREE.Mesh(new THREE.PlaneGeometry(7, 12.5), m); z.rotation.x = -Math.PI / 2; z.position.set(50, 0.3, 50);
+            const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 45, 14, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide })); beam.position.set(50, 22, 50);
+            const arrow = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.2, 3), m); arrow.rotation.x = -Math.PI / 2; arrow.position.set(50, 0.4, 44);
+            drive.zone = [z, beam, arrow]; drive.zoneMat = m; drive.zone.forEach(o => scene.add(o));
+        }
+        function startDriving(isTouch) {
+            const eo = document.getElementById('eye-overlay'); eo.classList.remove('hidden', 'opacity-0'); eo.classList.add('opacity-100');
+            setTimeout(() => {
+                currentScene = 'DRIVE'; setSceneLights('FOOD_TRUCK'); if (homeAPI) homeAPI.hide();
+                if (!drive.zone.length) buildDriveZone();
+                Object.assign(drive, { x: 14, z: 24, th: -Math.PI / 2, sp: 0, arrived: false, hudT: 0 });
+                foodTruckGroup.position.set(drive.x, 0, drive.z); foodTruckGroup.rotation.y = drive.th;
+                drive.cam.set(drive.x + Math.sin(drive.th) * 21, 11, drive.z + Math.cos(drive.th) * 21); camera.position.copy(drive.cam);
+                document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('mission-hud').classList.remove('hidden');
+                showBannerNotification('🚚 ¡Conduce tu food truck hasta el recuadro amarillo!');
+                setTimeout(() => { eo.classList.remove('opacity-100'); eo.classList.add('opacity-0'); setTimeout(() => eo.classList.add('hidden'), 1000); if (!isTouch) safeLock(); }, 500);
+            }, 1000);
+        }
+        const _dv = new THREE.Vector3();
+        function driveUpdate(dt) {
+            const D = drive; if (D.arrived) return;
+            const thr = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) + joyY, st = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
+            D.sp += thr * 9 * dt; if (!thr) D.sp -= D.sp * Math.min(1, 1.2 * dt);
+            D.sp = Math.max(-6, Math.min(16, D.sp));
+            D.th -= st * 1.3 * dt * Math.max(-1, Math.min(1, D.sp / 5));
+            D.x = Math.max(-40, Math.min(88, D.x - Math.sin(D.th) * D.sp * dt)); D.z = Math.max(19, Math.min(95, D.z - Math.cos(D.th) * D.sp * dt));
+            foodTruckGroup.position.set(D.x, 0, D.z); foodTruckGroup.rotation.y = D.th;
+            const bx = Math.sin(D.th), bz = Math.cos(D.th);
+            D.cam.lerp(_dv.set(D.x + bx * 21, 11, D.z + bz * 21), 1 - Math.exp(-5 * dt));
+            camera.position.copy(D.cam); camera.lookAt(D.x - bx * 4, 2.5, D.z - bz * 4);
+            const e = Math.atan2(Math.sin(D.th), Math.cos(D.th)), inZone = Math.abs(D.x - 50) < 3.2 && Math.abs(D.z - 50) < 4.5 && Math.abs(e) < 0.5;
+            D.zoneMat.color.setHex(inZone ? 0x4caf50 : 0xffd166);
+            D.hudT -= dt;
+            if (D.hudT <= 0) {
+                D.hudT = 0.2;
+                document.getElementById('mission-hud').innerHTML = `<div class="font-fun text-amber-300 text-sm mb-1">🚚 Conduce tu food truck</div><div>Entra al recuadro amarillo mirando hacia la flecha (norte) y frena.</div><div class="text-gray-300 mt-1">🏁 ${Math.hypot(D.x - 50, D.z - 50).toFixed(0)} m · ⚡ ${Math.round(Math.abs(D.sp) * 3)} km/h</div><div class="text-gray-400">W/S acelerar·frenar · A/D girar (o joystick)</div>`;
+            }
+            if (inZone && Math.abs(D.sp) < 5) {
+                D.arrived = true; foodTruckGroup.position.set(50, 0, 50); foodTruckGroup.rotation.y = 0;
+                drive.zone.forEach(o => o.visible = false); document.getElementById('mission-hud').classList.add('hidden');
+                document.getElementById('crosshair').style.display = '';
+                showBannerNotification('✅ ¡Llegaste! Prepárate para atender.'); teleportToFoodTruck(IS_TOUCH);
+            }
+        }
+
+        function startWakeUpSequence(isTouchDevice) {
+            hasStarted = true;
+            isWakingUp = true;
+            wakeUpProgress = 0;
+            const eyeOverlay = document.getElementById('eye-overlay');
+            const crosshair = document.getElementById('crosshair');
+            const mobileControls = document.getElementById('mobile-controls');
+
+            // Blink 1: First slit of light
+            setTimeout(() => {
+                eyeOverlay.classList.remove('opacity-100');
+                eyeOverlay.classList.add('opacity-80');
+            }, 300);
+
+            // Sleepy blink close
+            setTimeout(() => {
+                eyeOverlay.classList.remove('opacity-80');
+                eyeOverlay.classList.add('opacity-95');
+            }, 1000);
+
+            // Full eye open
+            setTimeout(() => {
+                eyeOverlay.classList.remove('opacity-95');
+                eyeOverlay.classList.add('opacity-0');
+            }, 1800);
+
+            // Complete wakeup process after motion animation finishes
+            setTimeout(() => {
+                isWakingUp = false;
+                eyeOverlay.classList.add('hidden');
+                if (homeAPI) homeAPI.start();
+
+                if (!isTouchDevice) {
+                    safeLock();
+                } else {
+                    if (mobileControls) mobileControls.classList.remove('hidden');
+                    if (crosshair) crosshair.classList.remove('hidden');
+                }
+            }, 4500);
+        }
+
+        // Respaldo cuando el navegador no permite Pointer Lock (iframes, vistas previas, etc.)
+        function enableFallback() {
+            fallbackMode = true;
+            document.getElementById('crosshair').classList.remove('hidden');
+            document.getElementById('instructions').style.display = 'none';
+        }
+        function lockFailedNotice() {
+            enableFallback();
+            const enPreview = window.self !== window.top;
+            showBannerNotification(enPreview
+                ? 'Vista previa: el mouse no se puede bloquear aquí. Arrastra con el clic para mirar, o abre el archivo en el navegador.'
+                : 'No se pudo bloquear el mouse. Arrastra con el clic para mirar, o haz clic para reintentar.');
+        }
+        function safeLock() {
+            if (!('pointerLockElement' in document)) { lockFailedNotice(); return; }
+            try { controls.lock(); } catch (e) { lockFailedNotice(); return; }
+            // Si en 0.7 s no quedó bloqueado, activa el modo de arrastrar
+            setTimeout(() => { if (!controls.isLocked && !fallbackMode) lockFailedNotice(); }, 700);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.1);
+
+            // Handle Waking Up Smooth Camera Animation
+            if (isWakingUp) {
+                wakeUpProgress = Math.min(wakeUpProgress + delta * 0.3, 1.0);
+
+                // Smooth easing curve (easeInOutCubic)
+                const t = wakeUpProgress < 0.5
+                    ? 4 * wakeUpProgress * wakeUpProgress * wakeUpProgress
+                    : 1 - Math.pow(-2 * wakeUpProgress + 2, 3) / 2;
+
+                // Interpolate position from bed to standing beside bed
+                camera.position.lerpVectors(bedPosition, standingPosition, t);
+
+                // Interpolate camera pitch/rotation from looking up to level horizon
+                camera.rotation.x = THREE.MathUtils.lerp(Math.PI / 3.5, 0, t);
+                camera.rotation.z = THREE.MathUtils.lerp(Math.PI / 12, 0, t);
+            } else {
+                const mobileControls = document.getElementById('mobile-controls');
+                const isMobileVisible = mobileControls ? !mobileControls.classList.contains('hidden') : false;
+                const isLockedOrMobile = controls.isLocked === true || isMobileVisible || fallbackMode;
+
+                if (isLockedOrMobile && !isShiftPromptActive && !isPCOpen) {
+                    velocity.x -= velocity.x * 10.0 * delta;
+                    velocity.z -= velocity.z * 10.0 * delta;
+
+                    direction.z = Number(moveForward) - Number(moveBackward) + joyY;
+                    direction.x = Number(moveRight) - Number(moveLeft) + joyX;
+                    if (direction.length() > 1) direction.normalize();
+
+                    const speed = 4.5;
+                    if (direction.z !== 0) velocity.z -= direction.z * speed * 10.0 * delta;
+                    if (direction.x !== 0) velocity.x -= direction.x * speed * 10.0 * delta;
+
+                    controls.moveRight(-velocity.x * delta);
+                    controls.moveForward(-velocity.z * delta);
+
+                    const pos = controls.getObject().position;
+                    // ✨ balanceo suave al caminar
+                    const spd = Math.hypot(velocity.x, velocity.z);
+                    bobAmt += (Math.min(1, spd / 4) - bobAmt) * Math.min(1, delta * 6);
+                    bobT += delta * 11 * bobAmt;
+                    const bob = Math.sin(bobT) * 0.035 * bobAmt;
+
+                    // Scene boundary collisions based on current scene
+                    if (currentScene === 'HOME') {
+                        // Restrict walls indoor boundaries
+                        pos.x = Math.max(-5.3, Math.min(5.3, pos.x));
+                        collideHome(pos); // ✨ choques con paredes y muebles
+                        pos.y = HOME_EYE + bob; // Lock standing eye height
+                        if (homeAPI) homeAPI.ray();
+
+                        // Exit Door Trigger Threshold
+                        if (pos.z > 4.7 && pos.z < 5.2 && Math.abs(pos.x) < 1.2 && !missionsDone) {
+                            pos.z = 4.2; velocity.z = 0;
+                            if (time - gateT > 3000) { gateT = time; showBannerNotification(homeAPI.gateMsg()); }
+                        } else if (pos.z > 4.7 && pos.z < 5.2 && Math.abs(pos.x) < 1.2) {
+                            isShiftPromptActive = true;
+                            if (controls.isLocked) controls.unlock();
+                            document.getElementById('shift-modal').classList.remove('hidden');
+                            moveForward = moveBackward = moveLeft = moveRight = false;
+                        } else if (pos.z < -10.4) {
+                            pos.z = -10.4;
+                        }
+                    } else if (currentScene === 'FOOD_TRUCK') {
+                        // Restrict movement inside narrow Food Truck aisle
+                        const K = TRUCK_SCALE, doorZ = 50 + (2.75 + truckExt) * K, clampX = (v, a, b) => Math.max(a, Math.min(b, v));
+                        if (pos.z <= 50 + (2.2 + truckExt) * K) truckOutside = false;
+                        if (!truckOutside) {
+                            if (pos.z > 50 + (2.2 + truckExt) * K) { pos.x = clampX(pos.x, 50 - 0.45 * K, 50 + 0.45 * K); if (pos.z > doorZ + 0.4) truckOutside = true; }
+                            else pos.x = clampX(pos.x, 50 - 0.5 * K, 50 + 0.5 * K);
+                            pos.z = Math.max(50 - 2.4 * K, pos.z);
+                        } else {
+                            pos.x = clampX(pos.x, 42, 68); pos.z = Math.min(pos.z, 72);
+                            if (Math.abs(pos.x - 50) > 0.45 * K) pos.z = Math.max(pos.z, doorZ + 0.4);
+                        }
+                        pos.y = TRUCK_EYE + bob;
+
+                        // Check interaction focus raycast continuously
+                        checkInteractionRaycast();
+                    }
+                }
+            }
+
+            prevTime = time;
+            updateDoor(delta);
+            if (homeAPI) homeAPI.update(delta);
+            if (currentScene === 'FOOD_TRUCK') updateCustomers(delta, time);
+            if (currentScene === 'DRIVE') driveUpdate(delta);
+            updateDelivery(delta, time);
+            updateTycoon(delta);
+            updateTruckDoor(delta);
+            // ✨ animaciones nuevas
+            if (fridgeDoorGroup) fridgeDoorGroup.rotation.y += (fridgeTarget - fridgeDoorGroup.rotation.y) * Math.min(1, delta * 7);
+            updateHand(delta);
+            updateDust(time);
+            if (skyGroup) skyGroup.position.copy(camera.position);
+            if (composer) { gradePass.uniforms.time.value = time * 0.001; composer.render(delta); }
+            else renderer.render(scene, camera);
+        }
+        // ▶️ Arranca el juego (al final, cuando todo ya está definido)
+        init();
+        animate();
+    </script>
+</body>
+</html>

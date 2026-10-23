@@ -1,0 +1,17 @@
+# Git LFS: only for heavy SOURCE files that the game never loads directly.
+# GitHub Pages does NOT serve LFS files, so anything under assets/ (what the
+# game loads at runtime: .glb, .mp3, .ogg, .png, .jpg) stays in normal git.
+source/**/*.blend   filter=lfs diff=lfs merge=lfs -text
+source/**/*.fbx     filter=lfs diff=lfs merge=lfs -text
+source/**/*.obj     filter=lfs diff=lfs merge=lfs -text
+source/**/*.wav     filter=lfs diff=lfs merge=lfs -text
+source/**/*.flac    filter=lfs diff=lfs merge=lfs -text
+source/**/*.psd     filter=lfs diff=lfs merge=lfs -text
+source/**/*.zip     filter=lfs diff=lfs merge=lfs -text
+source/**/*.glb     filter=lfs diff=lfs merge=lfs -text
+
+# Text files: keep consistent line endings across Windows and Mac
+*.html text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf

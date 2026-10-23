@@ -20,6 +20,8 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <!-- ✨ NUEVO: cargador de modelos 3D (.glb) hechos con Tripo / Blender -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         html, body { touch-action: none; overscroll-behavior: none; }
         body {
@@ -580,6 +582,27 @@
             g.scale.setScalar(1.25 * (look.size || 1));
             return g;
         }
+        // ✨ NUEVO: modelo 3D de la Clienta A (hecho con Tripo). Si no carga, se usa la persona dibujada con código.
+        let modeloClienteA = null;
+        const ALTURA_MODELO = 1.72; // el modelo mide 1 de alto; así queda igual de alto que la persona dibujada
+        function cargarModelos() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:') return; // abriendo el archivo con doble clic no se pueden cargar modelos
+            new THREE.GLTFLoader().load('assets/models/characters/customer_a.glb', (gltf) => {
+                modeloClienteA = gltf.scene;
+                modeloClienteA.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                customers.forEach(ponerModeloCliente); // también a los que ya están en la fila
+            }, undefined, () => { modeloClienteA = null; }); // si falla, no pasa nada
+        }
+        function ponerModeloCliente(c) {
+            if (!modeloClienteA || c.modelo) return;
+            const m = modeloClienteA.clone();
+            m.scale.setScalar(ALTURA_MODELO);
+            const mats = [];
+            m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); mats.push(o.material); } }); // cada cliente con su propio color (para ponerse rojo si se enoja)
+            c.rig.rig.children.forEach(p => p.visible = false); // esconde la persona dibujada
+            c.rig.rig.add(m); // el modelo va dentro del "rig": salta, se balancea y camina igual que antes
+            c.modelo = m; c.rig.modeloMats = mats;
+        }
         const _v = new THREE.Vector3();
         // Animación del personaje: caminar, respirar, parpadear, mirarte y emociones exageradas
         function animatePerson(o, t, moving, dt, patience) {
@@ -620,6 +643,8 @@
                 browA = 0.55; sad = true;
                 if (R.moodT < 1.0) { yaw = Math.sin(R.moodT * 26) * 0.5; armX0 = armX1 = -0.3; armZ = 0.5; }
                 R.skin.color.copy(R.skinBase).lerp(_c1.setHex(0xff5a4a), Math.min(1, R.moodT * 2) * 0.45);
+                if (R.modeloMats) R.modeloMats.forEach(mt => mt.color.setHex(0xffffff).lerp(_c1.setHex(0xff5a4a), Math.min(1, R.moodT * 2) * 0.5)); // ✨ el modelo 3D también se pone rojo
+                if (R.modeloMats && R.moodT < 1.0) R.rig.rotation.z = Math.sin(R.moodT * 30) * 0.08; // ✨ y tiembla de rabia
             }
             if (!R.carry) {
                 R.arms[0].rotation.x = armX0; R.arms[0].rotation.z = armZ;
@@ -651,6 +676,7 @@
             g.rotation.y = -Math.PI / 2;
             g.position.set(startX, 0, startZ);
             scene.add(g); customers.push(c);
+            ponerModeloCliente(c); // ✨ NUEVO: si el modelo 3D ya cargó, úsalo
         }
         function fillQueue(initial) {
             while (queueCount() < 3 + upg.space) { const n = queueCount(); spawnCustomer(initial ? 62 + n * 2.5 : 72, 58 + n * 1.5); }
@@ -1850,6 +1876,7 @@
 
             // --- BUILD ENHANCED INTERACTIVE FOOD TRUCK KITCHEN ---
             buildFoodTruckKitchen();
+            cargarModelos(); // ✨ NUEVO: carga los modelos 3D (.glb)
             foodTruckGroup.position.set(drive.x, 0, drive.z); foodTruckGroup.rotation.y = drive.th; // estacionado afuera, hay que conducirlo
             setSceneLights('HOME');
             scene.background = null;

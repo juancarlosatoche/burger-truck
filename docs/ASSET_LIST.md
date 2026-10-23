@@ -14,7 +14,8 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Where in game | Priority | Animations needed | Status |
 |---|---|---|---|---|
-| Customer A, B, C (green hoodie, blue jacket, pink sweater) | Truck window queue | P1 | idle, walk, impatient (tap foot, arms crossed), happy_jump, angry_stomp, wave | 🖼️ `reference/turnarounds/customer_a\|b\|c` |
+| Customer A (green hoodie) | Truck window queue | P1 | idle, walk, impatient, happy_jump, angry_stomp, wave | ✅ in game **without skeleton** (`assets/models/characters/customer_a.glb`, 1.2 MB, 25k triangles). Moves with the old code animations (bounce, sway, jump, turns red). Needs Blender rig |
+| Customer B, C (blue jacket, pink sweater) | Truck window queue | P1 | same as A | 🖼️ turnarounds ready; Tripo next |
 | Delivery driver | Behind the truck | P2 | walk, idle, carry (crate in `hand_R`) | 🖼️ `reference/turnarounds/delivery_driver` |
 | Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) || 🖼️ `reference/turnarounds/player_hands.png` |
 | Friend (phone avatar, 2D) | Phone message | P3 | (image only) | ⬜ |

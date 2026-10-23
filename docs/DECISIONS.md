@@ -86,6 +86,36 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - In the target the cab is on the left as seen from the queue; in the game it's on the right. The layout is the game's, so it stays.
   - The target's wheels have bigger chrome rims, and the red is a little darker and warmer.
 
+## 2026-10-23: Truck kitchen interior from Blender (`truck_interior.glb`)
+
+- **What:** `source/blender/build_truck_interior.py` builds the kitchen inside the truck: both steel counters with cabinet doors, grill surround with knobs and a range hood, wall shelves with jars, plates and boxes, hanging utensils and a towel, fridge top and kick plate, a new cash register, soda machine, ketchup and mustard bottles, napkins and cups, a wooden window frame with a warm light strip, order tickets, and the rear door frame with an apron. **190 KB, ~3.3k triangles.**
+- **Clicks keep working:** what the player clicks stays drawn by the code (grill plate, order plate, computer, ingredients). The fridge door from Blender (`nevera_bisagra`) goes inside the code's hinge, so it opens and closes as before; the code's door is hidden but still receives the click. All five clicks tested.
+- **"Ampliar":** `interior_middle` (window frame, light, tickets) stretches like the walls; `interior_rear` (door frame) slides back.
+- **Code:** `cargarModeloCocina()` loads it and hides the code-drawn counters, register, soda machine and bottles. New helper `piezaDeModelo()` applies the Blender scale to a piece. If the file can't load, the code-drawn kitchen stays (tested).
+- **Scripts are now safe to run inside Blender:** they no longer reset Blender (which closed the script editor), they find the repo folder from the open script, and they export a merged copy, so the scene keeps every part separate for tweaking. `build_food_truck.py` was updated the same way; its `.glb` is unchanged.
+- **Compared with `truck_window_dusk.jpg`** (screenshots `reference/screenshots/truck_interior_2026-10-23_*.jpg`, `truck_window_2026-10-23_blender.jpg`). Differences to fix later:
+  - The target's walls are warm orange; ours are still the code's white tile.
+  - The target has steel ingredient trays (lettuce, tomato, cheese) on the counter. They're left out for now, because they'd look clickable but aren't.
+  - The target's lighting is warmer and dimmer, with a strong orange ceiling light.
+  - The target has a bun bag, a spatula and napkins in the foreground near the grill.
+  - The window frame now matches the target (wood).
+
+## 2026-10-23: First-person driving with the cab from Blender (`truck_cab.glb`)
+
+- **What:** the decision from 2026-10-22 ("driving becomes first person") is now in the game. `source/blender/build_truck_cab.py` builds the inside of the cab:
+  - dashboard with speedometer and fuel gauge, radio, gear stick, glove box;
+  - seats, door panels, sun visors, roof light;
+  - the rear-view mirror with the **burger air freshener**;
+  - a steering wheel (`cab_volante`). **83 KB, ~1.3k triangles.**
+- **Truck body change:** the top of the cab in `food_truck.glb` is now hollow, with real openings for the windshield and side windows. The game makes the `vidrio` material transparent, so you can see out from the seat and see the dashboard from outside.
+- **Code (`driveUpdate`):** when both the truck body and the cab have loaded, the camera sits in the driver's seat on the left (`OJOS_CONDUCTOR`), looking ahead and a little down (`MIRADA_CONDUCTOR`). The wheel turns when you steer (A/D or joystick). Ignacio's driving logic (speed, steering, parking zone) is unchanged. If a model doesn't load, the old camera behind the truck is used (tested).
+- **Parking zone check:** from the seat, the yellow zone, the arrow and the light beam are easy to see (`reference/screenshots/driving_first_person_2026-10-23_zona.jpg`), so they didn't need to be bigger.
+- **Compared with `driving_first_person.jpg`:**
+  - The target shows the player's **hands** on the wheel. They'll come with the characters track (2A).
+  - The speedometer sits below the view; the target shows it through the wheel.
+  - The target's light is warm golden haze. The game's late-afternoon sky is more purple.
+  - The target's dashboard has more detail (vents, buttons), and the hood shows the truck's colors.
+  - The steering wheel tilts inside the truck's stretched scale (×2 wide, ×1.8 tall), so it's about 10% oval. That's barely visible.
 ## 2026-10-23: Bedroom furniture from Blender (`bedroom.glb`)
 
 - **What:** `source/blender/build_bedroom.py` builds:

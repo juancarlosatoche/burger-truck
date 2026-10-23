@@ -23,7 +23,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Priority | Notes | Status |
 |---|---|---|---|
-| Truck exterior: body, cab, wheels, canopy, sign | P1 | Look defined by `truck_exterior_night.jpg`: red lower body, cream upper body, faceted shapes, hinged service window with awning, lit "BURGER TRUCK" sign topped with a burger. Must allow the **"Ampliar"** upgrade: build it in **front / middle / rear** modules so the middle can be stretched or repeated | 🖼️ |
+| Truck exterior: body, cab, wheels, canopy, sign | P1 | Look defined by `truck_exterior_night.jpg`: red lower body, cream upper body, faceted shapes, hinged service window with awning, lit "BURGER TRUCK" sign topped with a burger. Must allow the **"Ampliar"** upgrade: build it in **front / middle / rear** modules so the middle can be stretched or repeated | ✅ in game (`assets/models/props/food_truck.glb`, 273 KB, ~5.7k triangles). Built by `source/blender/build_food_truck.py` → `source/blender/food_truck.blend`. Pieces: `truck_front`, `truck_middle` (stretches), `truck_rear` (slides back), `truck_sign`. Code-drawn body stays as fallback |
 | Truck cab interior: steering wheel, dashboard with speedometer, rear-view mirror with burger air-freshener, side mirror, windshield frame, visible hood | P1 | **New** (first-person driving). Look defined by `driving_first_person.jpg` | 🖼️ |
 | Truck interior: walls, floor, ceiling lights | P1 | Same modular rule | ⬜ |
 | Fridge with opening door | P1 | Door as a separate object (it animates) | ⬜ |

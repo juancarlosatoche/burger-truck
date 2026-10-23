@@ -62,3 +62,26 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - Customers stand lower and further from the window than in the target.
   - The game's sky is lighter and pinker; the target is deep indigo with an orange horizon.
   - The counter and plate are flat white; the target has brushed steel, ingredient trays and warmer interior light.
+
+## 2026-10-23: Characters paused; Stage 2B starts with the food truck exterior
+
+- **Decision:** rigging the customers (Stage 2A) is postponed. Work moves to Blender for everything else (truck, rooms, plaza), most visible first: truck exterior → truck interior → cab → bedroom → kitchen → plaza.
+- **How the Blender models are made:** Claude writes a Blender Python script per asset (`source/blender/build_*.py`), which builds the model at the game's exact sizes, saves the `.blend` and exports the `.glb`. Juan Carlos and Ignacio open the `.blend` in Blender and tweak anything. Re-running the script rebuilds from scratch, so tweaks made only in the `.blend` must be exported by hand (File → Export → glTF 2.0).
+- **The `.blend` isn't committed from Claude's side** (its large-file upload is blocked there). Running the script in Blender recreates `source/blender/food_truck.blend`; commit it from GitHub Desktop after tweaking.
+- **Colors:** the materials use the same hex numbers as the code (`0xc8102e` red, `0xf6ead2` cream…), so the model matches the rest of the game. In Blender they look paler than in the game; that's expected.
+
+## 2026-10-23: Food truck exterior from Blender (`food_truck.glb`)
+
+- **What:** new body for the truck, in four pieces so the **"Ampliar"** upgrade keeps working:
+  - `truck_front`: cab with windshield, mirrors, grille, headlights, front wheels, round burger logo;
+  - `truck_middle`: side walls, window frame, wooden ledge, hinged awning with light strip, roof and air conditioner. It **stretches**;
+  - `truck_rear`: back wall with the door opening, tail lights, step, rear wheels. It **slides back**;
+  - `truck_sign`: 3D "BURGER TRUCK" letters that glow at night, with a burger on top. It now travels with the truck (the old sign stayed in the plaza).
+- **Fits the code:** the walls sit just outside the interior walls, the window and the rear door opening are the same size, and everything hangs from an empty `escala_juego` that converts real game size to the code's units (×2 wide/long, ×1.8 tall).
+- **Code:** `cargarModeloTruck()` loads it, hides the code-drawn body, the old canopy and the plaza sign, and registers the middle/rear pieces in `truckParts`. Materials named `luz_…` join `lampMats`, so they brighten at dusk. If the file can't load, the code-drawn truck stays (tested).
+- **Compared with the style target** `truck_exterior_night.jpg` (screenshots `reference/screenshots/truck_exterior_2026-10-23_*.jpg`). Differences to fix later:
+  - The target's upper body is more faceted, with angled panels near the roof; ours is mostly flat with a faceted roof crown.
+  - The target's sign is tilted and bigger, sitting closer to the awning, and lights hang from it.
+  - The target has a warmer, brighter interior seen through the window, with shelves, utensils and a range hood. That will come with the truck interior.
+  - In the target the cab is on the left as seen from the queue; in the game it's on the right. The layout is the game's, so it stays.
+  - The target's wheels have bigger chrome rims, and the red is a little darker and warmer.

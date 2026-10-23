@@ -21,6 +21,7 @@ This is a kid's game (Ignacio). Keep it his.
 3. **Always keep a fallback.** If a `.glb` or sound fails to load, the code-drawn version must still show, and the game must never crash.
 4. **Three.js r128 only.** Load add-ons from `https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/...` (for example `loaders/GLTFLoader.js`). Don't use ES-module imports or newer Three.js APIs.
 5. **Runtime assets live in `assets/`** and are loaded with relative paths. They must be small: models under 3 MB, SFX under 100 KB.
+   - **When you change any `.glb`, update `VERSION_MODELOS` in `index.html`** (for example `?v=2026-10-24a`). Browsers keep old copies of models; without a new version, players get new code with old models.
 6. **No API keys, ever.** The repo is public.
 7. **Steer with images.** Before changing visuals:
    - read the style target in `reference/style-targets/`;

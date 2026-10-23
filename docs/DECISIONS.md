@@ -173,3 +173,9 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target has benches and a low wall around the plaza, and its trees are bigger and darker.
   - The target's ground is warm stone with a lit lawn; ours is the code's gray pavement tiles.
   - The target's umbrellas are all cream; ours are striped, to tell the two tables apart.
+
+## 2026-10-23: Model versions (fix: solid wall when driving)
+
+- **Problem:** after merging, the windshield looked like a cream wall from the driver's seat. The browser was still using an **old copy of `food_truck.glb`** (from before the cab windows were opened) with the new code.
+- **Fix:** every model is now loaded with `VERSION_MODELOS` (for example `food_truck.glb?v=2026-10-23c`), so browsers fetch the model that matches the code. **Rule (also in `CLAUDE.md`): when any `.glb` changes, update `VERSION_MODELOS`.**
+- **Also:** the rear-view mirror and the burger air freshener moved up near the roof. They were covering the yellow parking zone on the right side of the windshield (`reference/screenshots/driving_first_person_2026-10-23_fixed.jpg`).

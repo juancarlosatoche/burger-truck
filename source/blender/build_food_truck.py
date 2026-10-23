@@ -232,7 +232,21 @@ prism('techo_corona_frente', CROWN, 'Y', L, L + 0.08, M['crema'], front)
 box('techo_frente', -W_OUT - 0.08, W_OUT + 0.08, L, L + 0.08, H, H + 0.1, M['blanco'], front)
 CW = 2.72  # mitad del ancho de la cabina
 prism('cabina_abajo', [(L, SKIRT), (8.2, SKIRT), (8.35, 0.55), (8.35, 1.95), (8.15, 2.2), (L, 2.2)], 'X', -CW, CW, M['rojo'], front)
-prism('cabina_arriba', [(L, 2.2), (7.57, 2.2), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', -CW, CW, M['crema'], front)
+# Parte de arriba de la cabina: HUECA, con huecos de verdad para las ventanas
+# (desde el asiento del conductor se ve hacia afuera; el vidrio lo hace transparente el juego)
+prism('cabina_techo', [(L, 3.85), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', -CW, CW, M['crema'], front)
+d_ws = Vector((7.0 - 7.57, 3.85 - 2.2)).normalized()   # dirección del parabrisas (de abajo hacia arriba)
+n_in = Vector((-d_ws.y, d_ws.x)) * 0.1                 # hacia adentro de la cabina
+for s in (-1, 1):
+    x0, x1 = (CW - 0.04, CW) if s > 0 else (-CW, -CW + 0.04)
+    y_win = 7.57 - 0.57 * (3.62 - 2.2) / 1.65           # dónde corta el parabrisas a la altura de la ventana
+    prism('cabina_lado_abajo_%d' % s, [(L, 2.2), (7.57, 2.2), (7.49, 2.42), (L, 2.42)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_lado_arriba_%d' % s, [(L, 3.62), (y_win, 3.62), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_poste_atras_%d' % s, [(L, 2.42), (5.9, 2.42), (5.9, 3.62), (L, 3.62)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_poste_frente_%d' % s, [(7.35, 2.42), (7.49, 2.42), (y_win, 3.62), (6.92, 3.62)], 'X', x0, x1, M['crema'], front)
+    # postes a los lados del parabrisas (de afuera hacia adentro)
+    xa, xb = (CW - 0.2, CW) if s > 0 else (-CW, -CW + 0.2)
+    prism('parabrisas_poste_%d' % s, [(7.57, 2.2), (7.0, 3.85), (7.0 + n_in.x, 3.85 + n_in.y), (7.57 + n_in.x, 2.2 + n_in.y)], 'X', xa, xb, M['crema'], front)
 box('cabina_linea', -CW - 0.02, CW + 0.02, L, 8.37, RED_TOP, STRIPE_TOP, M['blanco'], front)
 box('cabina_faldon', -CW + 0.02, CW - 0.02, L, 8.2, 0.0, SKIRT, M['oscuro'], front)
 # Parabrisas inclinado

@@ -216,6 +216,7 @@
         let homeHour = 23.5, sunBeamMat = null; // la casa empieza de noche
         let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
         let carroceriaCodigo = [], toldoCodigo = null, letreroPlaza = []; // ✨ NUEVO: lo que se esconde cuando carga el truck de Blender
+        let cocinaCodigo = [], puertaNeveraCodigo = []; // ✨ NUEVO: muebles de la cocina dibujados con código (se esconden si carga el modelo)
 
         // =====================================================================
         // ✨ NUEVO: LUZ, CIELO, BRILLO Y REFLEJOS
@@ -592,6 +593,7 @@
             if (!THREE.GLTFLoader || location.protocol === 'file:') return; // abriendo el archivo con doble clic no se pueden cargar modelos
             const cargador = new THREE.GLTFLoader();
             cargarModeloTruck(); // ✨ NUEVO: carrocería del food truck hecha en Blender
+            cargarModeloCocina(); // ✨ NUEVO: cocina de adentro del truck hecha en Blender
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
                 cargador.load('assets/models/characters/' + archivo, (gltf) => {
                     modelosClientes[i] = gltf.scene;
@@ -1028,6 +1030,45 @@
                 letreroPlaza.forEach(o => o.visible = false);
                 applyTruckExt(); // por si ya habías comprado la ampliación
             }, undefined, () => { }); // si falla, se queda el truck dibujado con código
+        }
+
+        // ✨ NUEVO: pone una pieza de un modelo de Blender dentro del truck, con la escala del Blender ya aplicada
+        function piezaDeModelo(raiz, nombre) {
+            const pieza = raiz.getObjectByName(nombre);
+            if (!pieza) return null;
+            pieza.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
+            pieza.traverse(o => {
+                if (!o.isMesh) return;
+                o.castShadow = true; o.receiveShadow = true;
+                shiny(o.material, o.material.metalness > 0.5 ? 1.0 : 0.4);
+            });
+            return pieza;
+        }
+
+        // ✨ NUEVO: cocina de adentro del truck hecha en Blender (source/blender/build_truck_interior.py).
+        // La plancha, el plato, la computadora y los ingredientes los sigue dibujando el código (se les hace clic).
+        function cargarModeloCocina() {
+            new THREE.GLTFLoader().load('assets/models/props/truck_interior.glb', (gltf) => {
+                const raiz = gltf.scene;
+                raiz.updateMatrixWorld(true);
+                const fijo = piezaDeModelo(raiz, 'interior_static');
+                if (!fijo) return; // archivo raro: mejor no tocar nada
+                const caja = (pieza) => { const g = new THREE.Group(); g.add(pieza); foodTruckGroup.add(g); return g; };
+                caja(fijo);
+                const medio = piezaDeModelo(raiz, 'interior_middle');
+                if (medio) truckParts.push({ o: caja(medio), mode: 'stretch', z: 0, len: 5.5 }); // se estira con "Ampliar"
+                const atras = piezaDeModelo(raiz, 'interior_rear');
+                if (atras) truckParts.push({ o: caja(atras), mode: 'rear', z: 0 });           // se corre con "Ampliar"
+                // Puerta de la nevera: va dentro de la bisagra del código, así gira igual que antes
+                const puerta = piezaDeModelo(raiz, 'nevera_bisagra');
+                if (puerta && fridgeDoorGroup) {
+                    puerta.position.set(0, 0, 0);
+                    fridgeDoorGroup.add(puerta);
+                    puertaNeveraCodigo.forEach(o => o.visible = false); // invisible, pero el clic sigue funcionando
+                }
+                cocinaCodigo.forEach(o => o.visible = false);
+                applyTruckExt();
+            }, undefined, () => { }); // si falla, se queda la cocina dibujada con código
         }
 
         function updateDoor(delta) {
@@ -2261,6 +2302,8 @@
             const mustard = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.2, 12), shiny(new THREE.MeshStandardMaterial({ color: 0xffb703, roughness: 0.25 }), 0.6));
             mustard.position.set(0.9, 0.98, -0.52);
             foodTruckGroup.add(mustard);
+            cocinaCodigo = [cookCounter, serviceCounter, register, sodaMachine, ketchup, mustard]; // ✨ NUEVO: el modelo de Blender los reemplaza
+            puertaNeveraCodigo = [doorMesh, handleMesh]; // ✨ NUEVO: se esconden, pero la puerta sigue funcionando con clic
 
             // --- COMPUTADORA DE INVENTARIO (mostrador de entrega de pedidos) ---
             const pcMat = shiny(new THREE.MeshStandardMaterial({ color: 0x1b1f24, roughness: 0.35, metalness: 0.4 }), 0.6);

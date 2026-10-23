@@ -99,3 +99,77 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target's lighting is warmer and dimmer, with a strong orange ceiling light.
   - The target has a bun bag, a spatula and napkins in the foreground near the grill.
   - The window frame now matches the target (wood).
+
+## 2026-10-23: First-person driving with the cab from Blender (`truck_cab.glb`)
+
+- **What:** the decision from 2026-10-22 ("driving becomes first person") is now in the game. `source/blender/build_truck_cab.py` builds the inside of the cab:
+  - dashboard with speedometer and fuel gauge, radio, gear stick, glove box;
+  - seats, door panels, sun visors, roof light;
+  - the rear-view mirror with the **burger air freshener**;
+  - a steering wheel (`cab_volante`). **83 KB, ~1.3k triangles.**
+- **Truck body change:** the top of the cab in `food_truck.glb` is now hollow, with real openings for the windshield and side windows. The game makes the `vidrio` material transparent, so you can see out from the seat and see the dashboard from outside.
+- **Code (`driveUpdate`):** when both the truck body and the cab have loaded, the camera sits in the driver's seat on the left (`OJOS_CONDUCTOR`), looking ahead and a little down (`MIRADA_CONDUCTOR`). The wheel turns when you steer (A/D or joystick). Ignacio's driving logic (speed, steering, parking zone) is unchanged. If a model doesn't load, the old camera behind the truck is used (tested).
+- **Parking zone check:** from the seat, the yellow zone, the arrow and the light beam are easy to see (`reference/screenshots/driving_first_person_2026-10-23_zona.jpg`), so they didn't need to be bigger.
+- **Compared with `driving_first_person.jpg`:**
+  - The target shows the player's **hands** on the wheel. They'll come with the characters track (2A).
+  - The speedometer sits below the view; the target shows it through the wheel.
+  - The target's light is warm golden haze. The game's late-afternoon sky is more purple.
+  - The target's dashboard has more detail (vents, buttons), and the hood shows the truck's colors.
+  - The steering wheel tilts inside the truck's stretched scale (×2 wide, ×1.8 tall), so it's about 10% oval. That's barely visible.
+## 2026-10-23: Bedroom furniture from Blender (`bedroom.glb`)
+
+- **What:** `source/blender/build_bedroom.py` builds:
+  - a wooden bed with legs, footboard and a faceted headboard with a darker grain panel;
+  - mattress, sheet, a blue blanket draping over the sides, and two pillows;
+  - a nightstand with drawer, knob and books, a faceted crystal lamp, and the phone that gets the friend's message;
+  - a striped rug and green slippers.
+
+  **71 KB, ~1.1k triangles.** The house isn't scaled, so the Blender model is in real game units (scale 1).
+- **Clicks:** the house ignores hidden objects when checking clicks, so the Blender **mattress** (`cama_colchon`) and **lamp shade** (`lampara_pantalla`) take over the clicks from the code ones. The shade uses the code's lamp material, so clicking still turns the lamp on and off. Both clicks tested.
+- **Unchanged:** the collision boxes of the bed and nightstand, the wake-up camera, the tutorial. The blanket stops at Y=2.86, so the camera that wakes up on the mattress isn't inside it.
+- **Code:** `cargarModeloDormitorio()` is called from the house setup (`init`). If the file can't load, the code-drawn furniture stays (tested).
+- **Compared with `bedroom_night.jpg`:**
+  - The target is much darker. The moonlight comes through the window onto a wood floor, and the lamp is the main warm light. In the game the room is evenly lit by the ceiling light.
+  - The target's walls are plain gray-beige, without the code's speckled texture.
+  - The target's floor has long planks; the game's has a parquet pattern.
+  - The bed and lamp now match the style. The target's lamp shade is wider; ours keeps the code's size, because it is also the click target.
+## 2026-10-23: House kitchen from Blender (`house_kitchen.glb`)
+
+- **What:** `source/blender/build_house_kitchen.py` builds:
+  - honey-wood base cabinets with shaker doors, drawers and handles, a stone counter, oven and stove;
+  - a sink with tap, a dish rack and a tiled backsplash;
+  - upper cabinets with doors and a range hood;
+  - a cream fridge with magnets and a child's drawing;
+  - a table with two chairs, a fruit bowl, a vase with flowers and a faceted hanging lamp;
+  - counter details: cutting board, spoon jar, kettle, paper towels.
+
+  **203 KB, ~3.6k triangles.** Scale 1, like the bedroom.
+- **Clicks and missions unchanged:** the code-drawn cabinets, fridge, table and chairs are hidden; their collision boxes stay.
+  - The clickable things that never change (frying pan, toaster, egg carton) are drawn by Blender, but the click still lands on the code shape in the same place. Its *material* is switched off instead of hiding it, because the house only lets you click visible objects.
+  - Things that change during the mission (dirty plates, eggs, bread, slices, toast, fried eggs, foam, breakfast plate) stay code.
+  - Clicks tested: pan, toaster, eggs, plates, breakfast plate.
+- **Metal:** steel and chrome are only slightly metallic in this model. Fully metallic, they reflected the blue sky map and looked navy.
+- **Code:** `cargarModeloCocinaCasa()` is called from `init`. If the file can't load, the code-drawn kitchen stays (tested).
+- **Compared with `kitchen_morning.jpg`:**
+  - The target has a big window over the sink, with golden sun beams. Our back wall has no window; windows belong to the walls (still code).
+  - The target's light is strong, warm and low; ours is even and flat.
+  - The target's plates are colorful and its cups are on the counter; ours are the code's mission plates.
+  - The target's eggs sit in a 6-egg carton; ours shows the code's 2 eggs in the Blender carton.
+  - Cabinets, stove, pan, toaster, table and chairs now match the style.
+## 2026-10-23: Plaza from Blender (`plaza.glb`)
+
+- **What:** `source/blender/build_plaza.py` builds:
+  - two tables with faceted striped umbrellas (orange/cream and teal/cream) and wooden chairs with cushions;
+  - three strands of string lights on wooden posts. One is the original over the queue; two are new and cross the plaza over the tables, like the style target;
+  - six different trees (two oaks, two pines, a birch, a big bush) in the places of the code trees, so there's no copy-paste;
+  - planters with flowers, a green trash bin, the menu board's frame and legs, and two old-style lanterns.
+
+  **256 KB, ~4.4k triangles.** Scale 1, world positions (Blender Y = −z of the game).
+- **What stays code:** the actual lights (PointLights), the menu text, the buildings, the pavement, the street and the clock.
+- **Night lights:** the `luz_foquitos` and `luz_farol` materials join `lampMats`, so they brighten at dusk like the code bulbs did.
+- **Code:** `cargarModeloPlaza()` hides the 72 code-drawn pieces it replaces. If the file can't load, they stay (tested).
+- **Compared with `truck_exterior_night.jpg`:**
+  - Matches now: string lights crossing the plaza on wooden posts, umbrella tables with wooden chairs, rounded dark-green trees, lantern street lamps.
+  - The target has benches and a low wall around the plaza, and its trees are bigger and darker.
+  - The target's ground is warm stone with a lit lawn; ours is the code's gray pavement tiles.
+  - The target's umbrellas are all cream; ours are striped, to tell the two tables apart.

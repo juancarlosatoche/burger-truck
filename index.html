@@ -215,8 +215,10 @@
         const drive = { x: 14, z: 24, th: -Math.PI / 2, sp: 0, arrived: false, cam: new THREE.Vector3(), hudT: 0, zone: [], zoneMat: null }; // 🚚 conducción
         let homeHour = 23.5, sunBeamMat = null; // la casa empieza de noche
         let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
+        let dormitorioCodigo = null; // ✨ NUEVO: muebles del dormitorio dibujados con código (se esconden si carga el modelo de Blender)
         let carroceriaCodigo = [], toldoCodigo = null, letreroPlaza = []; // ✨ NUEVO: lo que se esconde cuando carga el truck de Blender
         let cocinaCodigo = [], puertaNeveraCodigo = []; // ✨ NUEVO: muebles de la cocina dibujados con código (se esconden si carga el modelo)
+        let carroceriaLista = false, cabinaLista = false, volanteGiro = null; // ✨ NUEVO: para manejar desde el asiento del conductor
 
         // =====================================================================
         // ✨ NUEVO: LUZ, CIELO, BRILLO Y REFLEJOS
@@ -594,6 +596,7 @@
             const cargador = new THREE.GLTFLoader();
             cargarModeloTruck(); // ✨ NUEVO: carrocería del food truck hecha en Blender
             cargarModeloCocina(); // ✨ NUEVO: cocina de adentro del truck hecha en Blender
+            cargarModeloCabina(); // ✨ NUEVO: cabina con volante para manejar en primera persona
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
                 cargador.load('assets/models/characters/' + archivo, (gltf) => {
                     modelosClientes[i] = gltf.scene;
@@ -859,7 +862,8 @@
             }, 1, 1, 256);
             const bd = add(new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ map: board, roughness: 0.9 })), 55.6, 1.5, 46.6);
             bd.rotation.y = -Math.PI / 2;
-            add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.5), mat(0x6d4c41)), 55.7, 1.4, 46.6);
+            const marcoMenu = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.5), mat(0x6d4c41)), 55.7, 1.4, 46.6);
+            const nAntesPlaza = scene.children.length; // ✨ NUEVO: para saber qué cosas de la plaza reemplaza el modelo de Blender
             // Mesas con sombrilla
             [[59, 45], [59, 55.5]].forEach(([x, z], i) => {
                 const top = add(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.07, 24), mat(0x8d6e63)), x, 1.1, z); top.castShadow = top.receiveShadow = true;
@@ -897,6 +901,8 @@
                 add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.36, 1), mat(0x43a047, { flatShading: true })), x, 0.75, z);
             });
             add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.9, 12), mat(0x455a64)), 55.4, 0.45, 56.2);
+            plazaCodigo = scene.children.slice(nAntesPlaza).filter(o => o.isMesh); // ✨ NUEVO: mesas, guirnalda, árboles, macetas, basurero (las luces de verdad se quedan)
+            plazaCodigo.push(marcoMenu);
             // Edificios de fondo con ventanas encendidas (✨ se encienden al anochecer)
             const wt = makeTex('#1c2733', (c, n) => { for (let y = 8; y < n; y += 32) for (let x = 8; x < n; x += 32) { c.fillStyle = Math.random() > 0.45 ? '#ffd88a' : '#26364a'; c.fillRect(x, y, 16, 20); } }, 3, 3, 256);
             const bMat = new THREE.MeshStandardMaterial({ map: wt, emissiveMap: wt, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.9 });
@@ -908,8 +914,8 @@
             // Farola que ilumina a los clientes
             const lampHeadMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffd45e, emissiveIntensity: 1.8 });
             lampMats.push({ mat: lampHeadMat, min: 0.2, max: 8 });
-            add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 5, 8), mat(0x263238)), 56.5, 2.5, 50);
-            add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), lampHeadMat), 56.5, 5.1, 50);
+            plazaCodigo.push(add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 5, 8), mat(0x263238)), 56.5, 2.5, 50)); // ✨ NUEVO: guardados para esconderlos
+            plazaCodigo.push(add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), lampHeadMat), 56.5, 5.1, 50));
             const lamp = new THREE.PointLight(0xffd79a, 1.8, 22); lamp.position.set(56.5, 4.8, 50); scene.add(lamp);
             truckLights.push(lamp); lampLights.push({ light: lamp, base: 1.8 });
             // Calle detrás del truck (zona de recibir materiales)
@@ -920,8 +926,8 @@
             for (let x = 30; x < 80; x += 4) { const l = add(new THREE.Mesh(new THREE.PlaneGeometry(2, 0.2), new THREE.MeshBasicMaterial({ color: 0xffd166 })), x, 0.02, 78); l.rotation.x = -Math.PI / 2; }
             const lamp2 = new THREE.PointLight(0xffd79a, 1.5, 20); lamp2.position.set(48, 4.5, 62); scene.add(lamp2);
             truckLights.push(lamp2); lampLights.push({ light: lamp2, base: 1.5 });
-            add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 4.6, 8), mat(0x263238)), 47, 2.3, 62);
-            add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), lampHeadMat), 47.4, 4.65, 62);
+            plazaCodigo.push(add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 4.6, 8), mat(0x263238)), 47, 2.3, 62));
+            plazaCodigo.push(add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), lampHeadMat), 47.4, 4.65, 62));
             // Reloj de pared dentro del truck (muestra la hora del juego)
             clockCv = document.createElement('canvas'); clockCv.width = clockCv.height = 256;
             clockTex = new THREE.CanvasTexture(clockCv); drawClock();
@@ -931,6 +937,31 @@
             const ec = ex.getContext('2d'); ec.fillStyle = '#0b7a3b'; ec.fillRect(0, 0, 256, 96); ec.fillStyle = '#fff'; ec.font = 'bold 54px Fredoka, sans-serif'; ec.textAlign = 'center'; ec.textBaseline = 'middle'; ec.fillText('🚪 SALIDA', 128, 52);
             const exit_ = add(new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ex), color: new THREE.Color(1.5, 1.5, 1.5) })), 50, 4.25, 55.36);
             exit_.rotation.y = Math.PI;
+            cargarModeloPlaza(); // ✨ NUEVO: mesas, guirnaldas, árboles y faroles hechos en Blender
+        }
+
+        // ✨ NUEVO: plaza hecha en Blender (source/blender/build_plaza.py). Si no carga, se queda la dibujada con código.
+        let plazaCodigo = [];
+        function cargarModeloPlaza() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:') return;
+            new THREE.GLTFLoader().load('assets/models/environment/plaza.glb', (gltf) => {
+                const raiz = gltf.scene;
+                if (!raiz.getObjectByName('plaza')) return; // archivo raro: mejor no tocar nada
+                const ya = new Set();
+                raiz.traverse(o => {
+                    if (!o.isMesh) return;
+                    o.castShadow = true; o.receiveShadow = true;
+                    const n = o.material.name;
+                    if (n.startsWith('luz_') && !ya.has(n)) { // foquitos y faroles se prenden al anochecer
+                        ya.add(n);
+                        lampMats.push({ mat: o.material, min: n === 'luz_farol' ? 0.2 : 0.25, max: n === 'luz_farol' ? 8 : 7 });
+                        o.castShadow = false;
+                    } else if (n.startsWith('luz_')) o.castShadow = false;
+                });
+                scene.add(raiz); // la plaza no está escalada: el modelo va tal cual
+                plazaCodigo.forEach(o => o.visible = false);
+                setTimeOfDay(currentScene === 'FOOD_TRUCK' ? 17 + gameMin / 60 : homeHour); // para que las luces nuevas tomen el brillo de la hora actual
+            }, undefined, () => { }); // si falla, se queda la plaza dibujada con código
         }
 
         // ✨ NUEVO: carrocería exterior del food truck (antes solo existían las paredes de adentro)
@@ -1008,6 +1039,9 @@
                         if (!o.isMesh) return;
                         o.castShadow = true; o.receiveShadow = true;
                         shiny(o.material, o.material.metalness > 0.5 ? 1.2 : 0.6);
+                        if (o.material.name === 'vidrio') { // ✨ NUEVO: vidrios transparentes para ver desde la cabina
+                            o.material.transparent = true; o.material.opacity = 0.25; o.material.depthWrite = false; o.castShadow = false;
+                        }
                         // los materiales "luz_..." brillan más de noche (como los faroles)
                         if (o.material.name.startsWith('luz_') && !o.material.userData.yaEsLuz) {
                             o.material.userData.yaEsLuz = true;
@@ -1028,6 +1062,7 @@
                 carroceriaCodigo.forEach(o => o.visible = false);
                 if (toldoCodigo) toldoCodigo.visible = false;
                 letreroPlaza.forEach(o => o.visible = false);
+                carroceriaLista = true; // ✨ NUEVO: ya se puede manejar desde adentro (si también cargó la cabina)
                 applyTruckExt(); // por si ya habías comprado la ampliación
             }, undefined, () => { }); // si falla, se queda el truck dibujado con código
         }
@@ -1043,6 +1078,28 @@
                 shiny(o.material, o.material.metalness > 0.5 ? 1.0 : 0.4);
             });
             return pieza;
+        }
+
+        // ✨ NUEVO: cabina por dentro (source/blender/build_truck_cab.py): tablero, asientos, espejo y un volante que gira.
+        // Si no carga, se maneja como antes (cámara detrás del truck).
+        function cargarModeloCabina() {
+            new THREE.GLTFLoader().load('assets/models/props/truck_cab.glb', (gltf) => {
+                const raiz = gltf.scene;
+                raiz.updateMatrixWorld(true);
+                const fijo = piezaDeModelo(raiz, 'cab_static');
+                if (!fijo) return;
+                const caja = new THREE.Group(); caja.add(fijo); foodTruckGroup.add(caja);
+                const volante = piezaDeModelo(raiz, 'cab_volante');
+                if (volante) {
+                    const inclinado = new THREE.Group();     // el volante va un poco inclinado hacia adelante
+                    inclinado.position.copy(volante.position);
+                    inclinado.rotation.x = -0.45;
+                    volanteGiro = new THREE.Group();         // este es el que gira cuando doblas
+                    volante.position.set(0, 0, 0);
+                    volanteGiro.add(volante); inclinado.add(volanteGiro); foodTruckGroup.add(inclinado);
+                }
+                cabinaLista = true;
+            }, undefined, () => { }); // si falla, se maneja con la cámara de atrás
         }
 
         // ✨ NUEVO: cocina de adentro del truck hecha en Blender (source/blender/build_truck_interior.py).
@@ -1391,6 +1448,44 @@
                     if (m === o[0]) pos.x = b.min.x - r; else if (m === o[1]) pos.x = b.max.x + r; else if (m === o[2]) pos.z = b.min.z - r; else pos.z = b.max.z + r;
                 }
             }
+        }
+
+        // ✨ NUEVO: muebles del dormitorio hechos en Blender (source/blender/build_bedroom.py).
+        // El colchón y la pantalla de la lámpara del modelo reciben los clics; si no carga, queda todo como antes.
+        function cargarModeloDormitorio() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:' || !dormitorioCodigo) return;
+            new THREE.GLTFLoader().load('assets/models/environment/bedroom.glb', (gltf) => {
+                const raiz = gltf.scene, D = dormitorioCodigo;
+                const muebles = raiz.getObjectByName('dormitorio'), colchon = raiz.getObjectByName('cama_colchon'), pantalla = raiz.getObjectByName('lampara_pantalla');
+                if (!muebles || !colchon || !pantalla) return; // archivo raro: mejor no tocar nada
+                raiz.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                scene.add(raiz); // la casa no está escalada: el modelo va tal cual
+                // Clics: el colchón y la pantalla del modelo hacen lo mismo que los del código
+                const cambiar = (viejo, nuevo, k) => {
+                    const i = homeInteractables.indexOf(viejo); if (i >= 0) homeInteractables.splice(i, 1);
+                    nuevo.traverse(o => { if (o.isMesh) { o.userData.home = k; homeInteractables.push(o); } });
+                    viejo.visible = false;
+                };
+                cambiar(D.mattress, colchon, 'bed');
+                pantalla.traverse(o => { if (o.isMesh) { o.material = D.lampShade.material; o.castShadow = false; } }); // misma luz: se prende y apaga igual
+                cambiar(D.lampShade, pantalla, 'lamp');
+                D.muebles.forEach(o => o.visible = false);
+            }, undefined, () => { }); // si falla, se quedan los muebles dibujados con código
+        }
+
+        // ✨ NUEVO: cocina-comedor de la casa hecha en Blender (source/blender/build_house_kitchen.py).
+        // "muebles" se esconden. "tocables" (sartén, tostadora, cartón) siguen recibiendo el clic, pero no se dibujan:
+        // la casa solo deja hacer clic en cosas visibles, así que se apaga su material en vez de esconderlas.
+        function cargarModeloCocinaCasa(muebles, tocables) {
+            if (!THREE.GLTFLoader || location.protocol === 'file:') return;
+            new THREE.GLTFLoader().load('assets/models/environment/house_kitchen.glb', (gltf) => {
+                const raiz = gltf.scene;
+                if (!raiz.getObjectByName('cocina_casa')) return; // archivo raro: mejor no tocar nada
+                raiz.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; shiny(o.material, o.material.metalness > 0.5 ? 0.3 : 0.15); } }); // reflejos suaves (si no, el metal se ve azul)
+                scene.add(raiz); // la casa no está escalada: el modelo va tal cual
+                muebles.forEach(o => o.visible = false);
+                tocables.forEach(o => { o.material = o.material.clone(); o.material.visible = false; o.castShadow = false; });
+            }, undefined, () => { }); // si falla, se queda la cocina dibujada con código
         }
 
         function init() {
@@ -1742,15 +1837,17 @@
             }
 
             // Cama: cabecero, cobija y almohada extra
-            box(2.3, 1.4, 0.12, 4, 0.8, -4.7, woodDark);
-            box(2.14, 0.1, 1.25, 4, 0.99, -2.175, new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 1 }));
-            box(0.8, 0.15, 0.5, 4.5, 0.98, -4.1, new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 1 }));
+            const cabecero = box(2.3, 1.4, 0.12, 4, 0.8, -4.7, woodDark);
+            const cobija = box(2.14, 0.1, 1.25, 4, 0.99, -2.175, new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 1 }));
+            const almohada2 = box(0.8, 0.15, 0.5, 4.5, 0.98, -4.1, new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 1 }));
 
             // Lámpara de la mesita
             const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.2, 12), woodDark); lampBase.position.set(2.4, 0.9, -4.2); scene.add(lampBase);
             const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.26, 16),
                 new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0xffb866, emissiveIntensity: 2.0 }));
             lampShade.position.set(2.4, 1.1, -4.2); scene.add(lampShade);
+            // ✨ NUEVO: el dormitorio de Blender reemplaza estos muebles (las cajas de choque de la cama y la mesita se quedan)
+            dormitorioCodigo = { muebles: [bed, pillow, nightstand, cabecero, cobija, almohada2, lampBase], mattress, lampShade };
 
             // Encimera de mármol
             box(3.6, 0.05, 1.05, 4, 0.925, 4, shiny(new THREE.MeshStandardMaterial({ color: 0xe6e6e6, roughness: 0.15, metalness: 0.1 }), 0.9));
@@ -1806,6 +1903,7 @@
             const mk = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; scene.add(m); return m; };
             const act = (m, k) => { m.userData.home = k; homeInteractables.push(m); return m; };
             // Muebles de cocina
+            const nAntesCocina = scene.children.length; // ✨ NUEVO: para saber qué muebles reemplaza el modelo de Blender
             solid(box(8, 0.9, 0.9, -1.9, 0.45, -10.5, cab)); box(8.1, 0.05, 0.95, -1.9, 0.925, -10.5, marble);
             box(5, 0.8, 0.45, -3.4, 2.6, -10.75, cab);
             solid(box(0.9, 2.0, 0.8, 4.9, 1.0, -10.4, steelK)); box(0.04, 0.6, 0.05, 4.45, 1.3, -9.98, steelK);
@@ -1816,6 +1914,7 @@
             solid(box(2.0, 0.08, 1.2, 2.8, 0.76, -7.6, woodDark));
             [[-0.9, -0.5], [0.9, -0.5], [-0.9, 0.5], [0.9, 0.5]].forEach(([dx, dz]) => box(0.07, 0.72, 0.07, 2.8 + dx, 0.36, -7.6 + dz, woodDark));
             [-6.6, -8.6].forEach((z, k) => { box(0.5, 0.06, 0.5, 2.8, 0.45, z, woodDark); box(0.08, 0.42, 0.08, 2.8, 0.21, z, woodDark); box(0.5, 0.5, 0.06, 2.8, 0.75, z + (k ? 0.22 : -0.22), woodDark); });
+            const mueblesCocina = scene.children.slice(nAntesCocina).filter(o => o !== foam); // ✨ NUEVO: la espuma se queda (aparece al fregar)
 
             // Misión 1: platos sucios apilados (clic para llevarlos al lavabo y fregar)
             const plates = [], white = new THREE.Color(0xf3f1ec); let washing = null;
@@ -1828,23 +1927,27 @@
             const carton = act(box(0.4, 0.07, 0.24, -2.3, 0.985, -10.5, new THREE.MeshStandardMaterial({ color: 0xc8b79a, roughness: 1 }), false), 'eggs');
             const eggs = [-0.09, 0.09].map(dx => { const e = act(mk(new THREE.SphereGeometry(0.05, 10, 8), eggMat, -2.3 + dx, 1.06, -10.5), 'eggs'); e.scale.y = 1.3; return e; });
             act(box(0.34, 0.2, 0.22, -1.7, 1.05, -10.5, new THREE.MeshStandardMaterial({ color: 0xd9a25f, roughness: 0.9 })), 'bread');
+            const nAntesEstufa = scene.children.length; // ✨ NUEVO
             box(0.9, 0.06, 0.75, -0.4, 0.98, -10.5, blk);
             [[-0.6, -10.67], [-0.2, -10.67], [-0.6, -10.33], [-0.2, -10.33]].forEach(([x, z]) => mk(new THREE.CylinderGeometry(0.11, 0.11, 0.012, 16), new THREE.MeshStandardMaterial({ color: 0x333a40, roughness: 0.5 }), x, 1.015, z));
+            mueblesCocina.push(...scene.children.slice(nAntesEstufa)); // ✨ NUEVO: estufa y hornillas también las reemplaza el modelo
             const panMat = new THREE.MeshStandardMaterial({ color: 0x22262a, roughness: 0.35, metalness: 0.7 });
-            act(mk(new THREE.CylinderGeometry(0.17, 0.14, 0.05, 20), panMat, -0.6, 1.06, -10.33), 'pan'); act(box(0.04, 0.025, 0.22, -0.6, 1.07, -10.08, panMat), 'pan');
+            const sarten = act(mk(new THREE.CylinderGeometry(0.17, 0.14, 0.05, 20), panMat, -0.6, 1.06, -10.33), 'pan'), sartenMango = act(box(0.04, 0.025, 0.22, -0.6, 1.07, -10.08, panMat), 'pan');
             const fry = (x, y, z) => { const g = new THREE.Group(); const w = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.012, 14), new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4 })); const yk = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffb300, roughness: 0.3 })); yk.scale.y = 0.6; yk.position.y = 0.01; g.add(w, yk); g.position.set(x, y, z); g.visible = false; scene.add(g); return g; };
             const panEggs = [fry(-0.67, 1.095, -10.33), fry(-0.53, 1.095, -10.33)], plateEggs = [fry(2.72, 0.845, -7.68), fry(2.88, 0.845, -7.68)];
-            act(box(0.5, 0.22, 0.3, 1.1, 1.06, -10.5, steelK), 'toaster');
+            const tostadora = act(box(0.5, 0.22, 0.3, 1.1, 1.06, -10.5, steelK), 'toaster');
             const breadMat = new THREE.MeshStandardMaterial({ color: 0xe8c48a, roughness: 0.9 });
             const slices = [-0.08, 0.08].map(dx => mk(new THREE.BoxGeometry(0.025, 0.17, 0.12), breadMat, 1.1 + dx, 1.05, -10.5));
             const toastMat = new THREE.MeshStandardMaterial({ color: 0xb5763a, roughness: 0.9 });
             const plateToast = [2.72, 2.88].map(x => { const t = mk(new THREE.BoxGeometry(0.14, 0.03, 0.14), toastMat, x, 0.845, -7.5); t.visible = false; return t; });
             const bPlate = act(mk(new THREE.CylinderGeometry(0.26, 0.22, 0.03, 24), new THREE.MeshStandardMaterial({ color: 0xf1ece4, roughness: 0.35 }), 2.8, 0.815, -7.6), 'bplate');
+            cargarModeloCocinaCasa(mueblesCocina, [sarten, sartenMango, tostadora, carton]); // ✨ NUEVO: cocina de la casa hecha en Blender
 
             // 🌙 Fases: tutorial (noche) → mensaje → dormir → mañana (misiones)
             let phase = 'tutorial'; const T = { move: false, look: false, lamp: false, q: null }; let lampOn = true;
             glassMat.color.setRGB(0.1, 0.12, 0.24); if (sunBeamMat) sunBeamMat.opacity = 0;
             act(lampShade, 'lamp'); act(mattress, 'bed');
+            cargarModeloDormitorio(); // ✨ NUEVO: muebles del dormitorio hechos en Blender
             const M = { dishes: 0, eggs: 0, bread: 0, ate: false, t1: 0, t2: 0, done: false };
             const HUDM = document.getElementById('mission-hud'), pr = document.getElementById('interaction-prompt');
             const eggTxt = ['🥚 Toma los huevos', '🍳 Ponlos en la sartén', '🍳 Friendo…', '🍽️ Llévalos al plato', '🥚 En el plato ✓'];
@@ -2705,6 +2808,8 @@
             }, 1000);
         }
         const _dv = new THREE.Vector3();
+        const OJOS_CONDUCTOR = new THREE.Vector3(-0.675, 1.92, -2.975);  // ✨ NUEVO: dónde van tus ojos en la cabina (medidas del truck)
+        const MIRADA_CONDUCTOR = new THREE.Vector3(-0.675, 0.1, -13);   // ✨ NUEVO: hacia dónde miras (adelante, un poco abajo)
         function driveUpdate(dt) {
             const D = drive; if (D.arrived) return;
             const thr = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) + joyY, st = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
@@ -2714,8 +2819,16 @@
             D.x = Math.max(-40, Math.min(88, D.x - Math.sin(D.th) * D.sp * dt)); D.z = Math.max(19, Math.min(95, D.z - Math.cos(D.th) * D.sp * dt));
             foodTruckGroup.position.set(D.x, 0, D.z); foodTruckGroup.rotation.y = D.th;
             const bx = Math.sin(D.th), bz = Math.cos(D.th);
-            D.cam.lerp(_dv.set(D.x + bx * 21, 11, D.z + bz * 21), 1 - Math.exp(-5 * dt));
-            camera.position.copy(D.cam); camera.lookAt(D.x - bx * 4, 2.5, D.z - bz * 4);
+            if (carroceriaLista && cabinaLista) {
+                // ✨ NUEVO: primera persona, sentado en el asiento del conductor (a la izquierda)
+                foodTruckGroup.updateMatrixWorld(true);
+                camera.position.copy(foodTruckGroup.localToWorld(_dv.copy(OJOS_CONDUCTOR)));
+                camera.lookAt(foodTruckGroup.localToWorld(_dv.copy(MIRADA_CONDUCTOR)));
+                if (volanteGiro) volanteGiro.rotation.z += (-st * 1.6 - volanteGiro.rotation.z) * Math.min(1, dt * 8); // el volante gira al doblar
+            } else { // cámara de antes: detrás y arriba del truck
+                D.cam.lerp(_dv.set(D.x + bx * 21, 11, D.z + bz * 21), 1 - Math.exp(-5 * dt));
+                camera.position.copy(D.cam); camera.lookAt(D.x - bx * 4, 2.5, D.z - bz * 4);
+            }
             const e = Math.atan2(Math.sin(D.th), Math.cos(D.th)), inZone = Math.abs(D.x - 50) < 3.2 && Math.abs(D.z - 50) < 4.5 && Math.abs(e) < 0.5;
             D.zoneMat.color.setHex(inZone ? 0x4caf50 : 0xffd166);
             D.hudT -= dt;

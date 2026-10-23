@@ -24,7 +24,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Asset | Priority | Notes | Status |
 |---|---|---|---|
 | Truck exterior: body, cab, wheels, canopy, sign | P1 | Look defined by `truck_exterior_night.jpg`: red lower body, cream upper body, faceted shapes, hinged service window with awning, lit "BURGER TRUCK" sign topped with a burger. Must allow the **"Ampliar"** upgrade: build it in **front / middle / rear** modules so the middle can be stretched or repeated | ✅ in game (`assets/models/props/food_truck.glb`, 273 KB, ~5.7k triangles). Built by `source/blender/build_food_truck.py` → `source/blender/food_truck.blend`. Pieces: `truck_front`, `truck_middle` (stretches), `truck_rear` (slides back), `truck_sign`. Code-drawn body stays as fallback |
-| Truck cab interior: steering wheel, dashboard with speedometer, rear-view mirror with burger air-freshener, side mirror, windshield frame, visible hood | P1 | **New** (first-person driving). Look defined by `driving_first_person.jpg` | 🖼️ |
+| Truck cab interior: steering wheel, dashboard with speedometer, rear-view mirror with burger air-freshener, side mirror, windshield frame, visible hood | P1 | **New** (first-person driving). Look defined by `driving_first_person.jpg` | ✅ in game via `truck_cab.glb` (`source/blender/build_truck_cab.py`, 83 KB): wheel turns when steering; windows of `food_truck.glb` are now real openings with transparent glass |
 | Truck interior: walls, floor, ceiling lights | P1 | Same modular rule | 🟡 walls, floor and ceiling still drawn in code; window frame, warm light strip and rear door frame from Blender (stretch with "Ampliar") |
 | Fridge with opening door | P1 | Door as a separate object (it animates) | ✅ in game via `truck_interior.glb` (`source/blender/build_truck_interior.py`): door is `nevera_bisagra`, placed in the code's hinge; inside of the fridge still code |
 | Grill (flat-top) | P1 | | ✅ in game via `truck_interior.glb` (`source/blender/build_truck_interior.py`): cabinet, knobs, guards and range hood; the clickable grill plate itself stays code |
@@ -38,12 +38,12 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Priority | Status |
 |---|---|---|
-| Umbrella tables with stools (×2) | P2 | ⬜ |
-| String lights on poles | P2 | ⬜ |
-| Street lamps | P2 | ⬜ |
-| Menu chalkboard (text stays drawn in code) | P2 | ⬜ |
-| Trees (3–4 varieties, not copy-paste) | P2 | ⬜ |
-| Planters, trash bin | P3 | ⬜ |
+| Umbrella tables with stools (×2) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): wooden chairs with backs instead of stools |
+| String lights on poles | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 3 strands on wooden posts (2 new, crossing the plaza) |
+| Street lamps | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): old-style lanterns; the real lights stay code |
+| Menu chalkboard (text stays drawn in code) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): frame and legs |
+| Trees (3–4 varieties, not copy-paste) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 2 oaks, 2 pines, 1 birch, 1 big bush |
+| Planters, trash bin | P3 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): planters with flowers |
 | Background buildings with lit windows | P3 | ⬜ |
 | Road, sidewalk, grass textures | P2 | ⬜ |
 | Yellow parking zone and arrow (driving) | P3 | Can stay in code | ⬜ |
@@ -52,15 +52,15 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Area | Priority | Status |
 |---|---|---|---|
-| Bed, nightstand, bedside lamp | Bedroom | P1 (first thing seen) | ⬜ |
+| Bed, nightstand, bedside lamp | Bedroom | P1 (first thing seen) | ✅ in game via `assets/models/environment/bedroom.glb` (`source/blender/build_bedroom.py`, 71 KB): wooden bed, blanket, pillows, nightstand with drawer and books, crystal lamp, phone, rug, slippers. Walls, floor and window stay code |
 | Sofa, coffee table, plant, rug, painting | Living room | P2 | ⬜ |
 | Front double door, windows | Living room | P2 | ⬜ |
-| Kitchen cabinets, counter, upper cabinets, fridge | Kitchen | P1 (morning missions) | ⬜ |
-| Sink with tap, dish rack | Kitchen | P1 | ⬜ |
+| Kitchen cabinets, counter, upper cabinets, fridge | Kitchen | P1 (morning missions) | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`): shaker doors, drawers, oven, stove, hood, tiles, fridge with magnets and a drawing |
+| Sink with tap, dish rack | Kitchen | P1 | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`) |
 | Dishes (dirty → clean) | Kitchen | P1 | ⬜ |
-| Egg carton, eggs, frying pan, fried eggs | Kitchen | P1 | ⬜ |
-| Bread loaf, toaster, toast | Kitchen | P1 | ⬜ |
-| Dining table, chairs, breakfast plate | Kitchen | P2 | ⬜ |
+| Egg carton, eggs, frying pan, fried eggs | Kitchen | P1 | 🟡 carton and pan from Blender (clicks stay on the code shapes); eggs and fried eggs still code (they change during the mission) |
+| Bread loaf, toaster, toast | Kitchen | P1 | 🟡 toaster from Blender (click stays on the code shape); bread, slices and toast still code |
+| Dining table, chairs, breakfast plate | Kitchen | P2 | ✅ in game via `assets/models/environment/house_kitchen.glb` (`source/blender/build_house_kitchen.py`): table, chairs, fruit bowl, vase, hanging lamp; the breakfast plate stays code (clickable) |
 | House exterior, roof, garden trees, path | Outside | P2 (seen while driving) | ⬜ |
 
 ## Audio (track 2C)

@@ -85,3 +85,17 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target has a warmer, brighter interior seen through the window, with shelves, utensils and a range hood. That will come with the truck interior.
   - In the target the cab is on the left as seen from the queue; in the game it's on the right. The layout is the game's, so it stays.
   - The target's wheels have bigger chrome rims, and the red is a little darker and warmer.
+
+## 2026-10-23: Truck kitchen interior from Blender (`truck_interior.glb`)
+
+- **What:** `source/blender/build_truck_interior.py` builds the kitchen inside the truck: both steel counters with cabinet doors, grill surround with knobs and a range hood, wall shelves with jars, plates and boxes, hanging utensils and a towel, fridge top and kick plate, a new cash register, soda machine, ketchup and mustard bottles, napkins and cups, a wooden window frame with a warm light strip, order tickets, and the rear door frame with an apron. **190 KB, ~3.3k triangles.**
+- **Clicks keep working:** what the player clicks stays drawn by the code (grill plate, order plate, computer, ingredients). The fridge door from Blender (`nevera_bisagra`) goes inside the code's hinge, so it opens and closes as before; the code's door is hidden but still receives the click. All five clicks tested.
+- **"Ampliar":** `interior_middle` (window frame, light, tickets) stretches like the walls; `interior_rear` (door frame) slides back.
+- **Code:** `cargarModeloCocina()` loads it and hides the code-drawn counters, register, soda machine and bottles. New helper `piezaDeModelo()` applies the Blender scale to a piece. If the file can't load, the code-drawn kitchen stays (tested).
+- **Scripts are now safe to run inside Blender:** they no longer reset Blender (which closed the script editor), they find the repo folder from the open script, and they export a merged copy, so the scene keeps every part separate for tweaking. `build_food_truck.py` was updated the same way; its `.glb` is unchanged.
+- **Compared with `truck_window_dusk.jpg`** (screenshots `reference/screenshots/truck_interior_2026-10-23_*.jpg`, `truck_window_2026-10-23_blender.jpg`). Differences to fix later:
+  - The target's walls are warm orange; ours are still the code's white tile.
+  - The target has steel ingredient trays (lettuce, tomato, cheese) on the counter. They're left out for now, because they'd look clickable but aren't.
+  - The target's lighting is warmer and dimmer, with a strong orange ceiling light.
+  - The target has a bun bag, a spatula and napkins in the foreground near the grill.
+  - The window frame now matches the target (wood).

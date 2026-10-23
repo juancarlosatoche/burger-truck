@@ -116,3 +116,20 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target's light is warm golden haze. The game's late-afternoon sky is more purple.
   - The target's dashboard has more detail (vents, buttons), and the hood shows the truck's colors.
   - The steering wheel tilts inside the truck's stretched scale (×2 wide, ×1.8 tall), so it's about 10% oval. That's barely visible.
+## 2026-10-23: Bedroom furniture from Blender (`bedroom.glb`)
+
+- **What:** `source/blender/build_bedroom.py` builds:
+  - a wooden bed with legs, footboard and a faceted headboard with a darker grain panel;
+  - mattress, sheet, a blue blanket draping over the sides, and two pillows;
+  - a nightstand with drawer, knob and books, a faceted crystal lamp, and the phone that gets the friend's message;
+  - a striped rug and green slippers.
+
+  **71 KB, ~1.1k triangles.** The house isn't scaled, so the Blender model is in real game units (scale 1).
+- **Clicks:** the house ignores hidden objects when checking clicks, so the Blender **mattress** (`cama_colchon`) and **lamp shade** (`lampara_pantalla`) take over the clicks from the code ones. The shade uses the code's lamp material, so clicking still turns the lamp on and off. Both clicks tested.
+- **Unchanged:** the collision boxes of the bed and nightstand, the wake-up camera, the tutorial. The blanket stops at Y=2.86, so the camera that wakes up on the mattress isn't inside it.
+- **Code:** `cargarModeloDormitorio()` is called from the house setup (`init`). If the file can't load, the code-drawn furniture stays (tested).
+- **Compared with `bedroom_night.jpg`:**
+  - The target is much darker. The moonlight comes through the window onto a wood floor, and the lamp is the main warm light. In the game the room is evenly lit by the ceiling light.
+  - The target's walls are plain gray-beige, without the code's speckled texture.
+  - The target's floor has long planks; the game's has a parquet pattern.
+  - The bed and lamp now match the style. The target's lamp shade is wider; ours keeps the code's size, because it is also the click target.

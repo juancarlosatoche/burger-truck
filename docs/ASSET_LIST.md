@@ -52,7 +52,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Area | Priority | Status |
 |---|---|---|---|
-| Bed, nightstand, bedside lamp | Bedroom | P1 (first thing seen) | ⬜ |
+| Bed, nightstand, bedside lamp | Bedroom | P1 (first thing seen) | ✅ in game via `assets/models/environment/bedroom.glb` (`source/blender/build_bedroom.py`, 71 KB): wooden bed, blanket, pillows, nightstand with drawer and books, crystal lamp, phone, rug, slippers. Walls, floor and window stay code |
 | Sofa, coffee table, plant, rug, painting | Living room | P2 | ⬜ |
 | Front double door, windows | Living room | P2 | ⬜ |
 | Kitchen cabinets, counter, upper cabinets, fridge | Kitchen | P1 (morning missions) | ⬜ |

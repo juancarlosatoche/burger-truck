@@ -35,7 +35,7 @@ Keep the same style line and swap in each scene below. Save each one to `referen
 
 - **Bedroom at night:** "First-person view from a bed in a small cozy bedroom at night, bedside lamp glowing warm, moonlight through a window, nightstand with a phone, wooden floor."
 - **Kitchen in the morning:** "First-person view of a small home kitchen in morning sunlight: stack of dirty plates by the sink, egg carton, frying pan on the stove, a toaster, a dining table with a plate."
-- **Driving the truck:** "Third-person view from behind and above a red and cream burger food truck driving on a grass field toward a glowing yellow parking zone, a small house in the distance, late afternoon."
+- **Driving the truck (first person, decided 2026-10-22):** "First-person view from the driver's seat of a burger food truck, hands on a chunky steering wheel, simple dashboard with a speedometer and a small burger air-freshener hanging from the mirror. Through the wide windshield: a grass field in late afternoon golden light, a glowing yellow parking zone with a big arrow ahead, low-poly trees and a small house in the distance. The red and cream hood of the truck is visible at the bottom of the windshield."
 - **Truck exterior:** "Side view of a red and cream burger food truck parked in a small plaza at night, canopy open, glowing BURGER TRUCK sign, string lights, customers in line."
 
 > ✅ **Style chosen** (2026-10-22): use the style line in [`00_style.md`](00_style.md), and attach `reference/style-targets/truck_window_dusk.jpg` with *"Match the art style of the attached image."*

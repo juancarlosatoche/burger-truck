@@ -16,14 +16,15 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 |---|---|---|---|---|
 | Customer A, B, C (3 body types, color variants) | Truck window queue | P1 | idle, walk, impatient (tap foot, arms crossed), happy_jump, angry_stomp, wave | ⬜ |
 | Delivery driver | Behind the truck | P2 | walk, idle, carry (crate in `hand_R`) | ⬜ |
-| Player hand (first person) | Holding ingredients | P1 | grab, hold (socket `hand_R`) | ⬜ |
+| Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) | ⬜ |
 | Friend (phone avatar, 2D) | Phone message | P3 | (image only) | ⬜ |
 
 ## Food truck (track 2B)
 
 | Asset | Priority | Notes | Status |
 |---|---|---|---|
-| Truck exterior: body, cab, wheels, canopy, sign | P1 | Seen while driving. Must allow the **"Ampliar"** upgrade: build it in **front / middle / rear** modules so the middle can be stretched or repeated | ⬜ |
+| Truck exterior: body, cab, wheels, canopy, sign | P1 | Look defined by `truck_exterior_night.jpg`: red lower body, cream upper body, faceted shapes, hinged service window with awning, lit "BURGER TRUCK" sign topped with a burger. Must allow the **"Ampliar"** upgrade: build it in **front / middle / rear** modules so the middle can be stretched or repeated | 🖼️ |
+| Truck cab interior: steering wheel, dashboard with speedometer, rear-view mirror with burger air-freshener, side mirror, windshield frame, visible hood | P1 | **New** (first-person driving). Look defined by `driving_first_person.jpg` | 🖼️ |
 | Truck interior: walls, floor, ceiling lights | P1 | Same modular rule | ⬜ |
 | Fridge with opening door | P1 | Door as a separate object (it animates) | ⬜ |
 | Grill (flat-top) | P1 | | ⬜ |

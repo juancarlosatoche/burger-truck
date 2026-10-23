@@ -14,9 +14,9 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Where in game | Priority | Animations needed | Status |
 |---|---|---|---|---|
-| Customer A, B, C (3 body types, color variants) | Truck window queue | P1 | idle, walk, impatient (tap foot, arms crossed), happy_jump, angry_stomp, wave | ⬜ |
-| Delivery driver | Behind the truck | P2 | walk, idle, carry (crate in `hand_R`) | ⬜ |
-| Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) | ⬜ |
+| Customer A, B, C (green hoodie, blue jacket, pink sweater) | Truck window queue | P1 | idle, walk, impatient (tap foot, arms crossed), happy_jump, angry_stomp, wave | 🖼️ `reference/turnarounds/customer_a\|b\|c` |
+| Delivery driver | Behind the truck | P2 | walk, idle, carry (crate in `hand_R`) | 🖼️ `reference/turnarounds/delivery_driver` |
+| Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) || 🖼️ `reference/turnarounds/player_hands.png` |
 | Friend (phone avatar, 2D) | Phone message | P3 | (image only) | ⬜ |
 
 ## Food truck (track 2B)

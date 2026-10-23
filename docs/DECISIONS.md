@@ -50,14 +50,15 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - A change to the driving camera in `driveUpdate()`: camera inside the cab, plus steering-wheel rotation. It will be done when the truck model goes in, keeping Ignacio's driving logic (speed, steering, parking zone) as it is.
 - **To check when we get there:** in first person it's harder to see the parking zone, so the yellow zone and arrow may need to be bigger or brighter.
 
-## 2026-10-22: First Tripo model in the game (Customer A, preview)
+## 2026-10-22: First Tripo models in the game (Customers A, B, C, preview)
 
-- **What:** `customer_a.glb` from Tripo replaces the code-drawn customer body for **every** customer in line, until Customers B and C exist.
+- **What:** `customer_a.glb`, `customer_b.glb` and `customer_c.glb` from Tripo replace the code-drawn customer bodies. Customers take turns A, B, C, A… so the line always shows different people.
 - **Why now:** to show the kids the pipeline working end to end (image → Tripo → game) before rigging.
-- **Optimized** from Tripo's 10.6 MB (210k triangles, three 4096 textures) to **1.2 MB** (25k triangles, 1024 textures) with `gltf-transform` (weld, simplify, resize). The original stays out of the repo for now; regenerate or keep it locally.
+- **Optimized** from Tripo's ~10 MB each (≈210k triangles, three 4096 textures) to **1.1–1.3 MB** each (≈25k triangles, 1024 textures) with `gltf-transform` (weld, simplify, resize). Originals stay out of the repo for now; keep them locally.
+- **Texture check:** Customer B's dark smudges on the chin and neck are in Tripo's original too (compared side by side), not caused by the optimization. Fix later in Blender (texture paint) or by regenerating.
 - **No skeleton yet.** The model goes inside the existing `rig` group, so it reuses Ignacio's code animations: walk bounce, sway, happy jump, angry shake. Arms, legs and the face don't move until the Blender rig (Stage 2A, step 3).
 - **Fallback:** if the model can't load (for example when opening `index.html` by double-click), the code-drawn customers appear as before.
-- **Compared with the style target** (`reference/screenshots/truck_window_2026-10-22_customer_a.jpg`). Differences to fix later:
+- **Compared with the style target** (`reference/screenshots/truck_window_2026-10-22_customers_abc.jpg`). Differences to fix later:
   - Customers stand lower and further from the window than in the target.
   - The game's sky is lighter and pinker; the target is deep indigo with an orange horizon.
   - The counter and plate are flat white; the target has brushed steel, ingredient trays and warmer interior light.

@@ -582,20 +582,27 @@
             g.scale.setScalar(1.25 * (look.size || 1));
             return g;
         }
-        // ✨ NUEVO: modelo 3D de la Clienta A (hecho con Tripo). Si no carga, se usa la persona dibujada con código.
-        let modeloClienteA = null;
-        const ALTURA_MODELO = 1.72; // el modelo mide 1 de alto; así queda igual de alto que la persona dibujada
+        // ✨ NUEVO: modelos 3D de los clientes (hechos con Tripo). Si no cargan, se usa la persona dibujada con código.
+        const ARCHIVOS_CLIENTES = ['customer_a.glb', 'customer_b.glb', 'customer_c.glb']; // A: sudadera verde, B: chaqueta azul, C: suéter rosa
+        const modelosClientes = [null, null, null]; // aquí se guardan cuando terminan de cargar
+        let turnoModelo = 0; // para que en la fila salgan personas distintas: A, B, C, A, B, C...
+        const ALTURA_MODELO = 1.72; // los modelos miden 1 de alto; así quedan igual de altos que la persona dibujada
         function cargarModelos() {
             if (!THREE.GLTFLoader || location.protocol === 'file:') return; // abriendo el archivo con doble clic no se pueden cargar modelos
-            new THREE.GLTFLoader().load('assets/models/characters/customer_a.glb', (gltf) => {
-                modeloClienteA = gltf.scene;
-                modeloClienteA.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-                customers.forEach(ponerModeloCliente); // también a los que ya están en la fila
-            }, undefined, () => { modeloClienteA = null; }); // si falla, no pasa nada
+            const cargador = new THREE.GLTFLoader();
+            ARCHIVOS_CLIENTES.forEach((archivo, i) => {
+                cargador.load('assets/models/characters/' + archivo, (gltf) => {
+                    modelosClientes[i] = gltf.scene;
+                    gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                    customers.forEach(ponerModeloCliente); // también a los que ya están en la fila
+                }, undefined, () => { }); // si uno falla, ese cliente sigue dibujado con código
+            });
         }
         function ponerModeloCliente(c) {
-            if (!modeloClienteA || c.modelo) return;
-            const m = modeloClienteA.clone();
+            if (c.queModelo === undefined) c.queModelo = turnoModelo++ % ARCHIVOS_CLIENTES.length; // a cada cliente le toca uno
+            const base = modelosClientes[c.queModelo];
+            if (!base || c.modelo) return;
+            const m = base.clone();
             m.scale.setScalar(ALTURA_MODELO);
             const mats = [];
             m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); mats.push(o.material); } }); // cada cliente con su propio color (para ponerse rojo si se enoja)

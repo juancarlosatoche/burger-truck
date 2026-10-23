@@ -37,3 +37,5 @@ Keep the same style line and swap in each scene below. Save each one to `referen
 - **Kitchen in the morning:** "First-person view of a small home kitchen in morning sunlight: stack of dirty plates by the sink, egg carton, frying pan on the stove, a toaster, a dining table with a plate."
 - **Driving the truck:** "Third-person view from behind and above a red and cream burger food truck driving on a grass field toward a glowing yellow parking zone, a small house in the distance, late afternoon."
 - **Truck exterior:** "Side view of a red and cream burger food truck parked in a small plaza at night, canopy open, glowing BURGER TRUCK sign, string lights, customers in line."
+
+> ✅ **Style chosen** (2026-10-22): use the style line in [`00_style.md`](00_style.md), and attach `reference/style-targets/truck_window_dusk.jpg` with *"Match the art style of the attached image."*

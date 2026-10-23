@@ -215,6 +215,7 @@
         const drive = { x: 14, z: 24, th: -Math.PI / 2, sp: 0, arrived: false, cam: new THREE.Vector3(), hudT: 0, zone: [], zoneMat: null }; // 🚚 conducción
         let homeHour = 23.5, sunBeamMat = null; // la casa empieza de noche
         let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
+        let dormitorioCodigo = null; // ✨ NUEVO: muebles del dormitorio dibujados con código (se esconden si carga el modelo de Blender)
         let carroceriaCodigo = [], toldoCodigo = null, letreroPlaza = []; // ✨ NUEVO: lo que se esconde cuando carga el truck de Blender
 
         // =====================================================================
@@ -1352,6 +1353,29 @@
             }
         }
 
+        // ✨ NUEVO: muebles del dormitorio hechos en Blender (source/blender/build_bedroom.py).
+        // El colchón y la pantalla de la lámpara del modelo reciben los clics; si no carga, queda todo como antes.
+        function cargarModeloDormitorio() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:' || !dormitorioCodigo) return;
+            new THREE.GLTFLoader().load('assets/models/environment/bedroom.glb', (gltf) => {
+                const raiz = gltf.scene, D = dormitorioCodigo;
+                const muebles = raiz.getObjectByName('dormitorio'), colchon = raiz.getObjectByName('cama_colchon'), pantalla = raiz.getObjectByName('lampara_pantalla');
+                if (!muebles || !colchon || !pantalla) return; // archivo raro: mejor no tocar nada
+                raiz.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                scene.add(raiz); // la casa no está escalada: el modelo va tal cual
+                // Clics: el colchón y la pantalla del modelo hacen lo mismo que los del código
+                const cambiar = (viejo, nuevo, k) => {
+                    const i = homeInteractables.indexOf(viejo); if (i >= 0) homeInteractables.splice(i, 1);
+                    nuevo.traverse(o => { if (o.isMesh) { o.userData.home = k; homeInteractables.push(o); } });
+                    viejo.visible = false;
+                };
+                cambiar(D.mattress, colchon, 'bed');
+                pantalla.traverse(o => { if (o.isMesh) { o.material = D.lampShade.material; o.castShadow = false; } }); // misma luz: se prende y apaga igual
+                cambiar(D.lampShade, pantalla, 'lamp');
+                D.muebles.forEach(o => o.visible = false);
+            }, undefined, () => { }); // si falla, se quedan los muebles dibujados con código
+        }
+
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1d2233);
@@ -1701,15 +1725,17 @@
             }
 
             // Cama: cabecero, cobija y almohada extra
-            box(2.3, 1.4, 0.12, 4, 0.8, -4.7, woodDark);
-            box(2.14, 0.1, 1.25, 4, 0.99, -2.175, new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 1 }));
-            box(0.8, 0.15, 0.5, 4.5, 0.98, -4.1, new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 1 }));
+            const cabecero = box(2.3, 1.4, 0.12, 4, 0.8, -4.7, woodDark);
+            const cobija = box(2.14, 0.1, 1.25, 4, 0.99, -2.175, new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 1 }));
+            const almohada2 = box(0.8, 0.15, 0.5, 4.5, 0.98, -4.1, new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 1 }));
 
             // Lámpara de la mesita
             const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.2, 12), woodDark); lampBase.position.set(2.4, 0.9, -4.2); scene.add(lampBase);
             const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.26, 16),
                 new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0xffb866, emissiveIntensity: 2.0 }));
             lampShade.position.set(2.4, 1.1, -4.2); scene.add(lampShade);
+            // ✨ NUEVO: el dormitorio de Blender reemplaza estos muebles (las cajas de choque de la cama y la mesita se quedan)
+            dormitorioCodigo = { muebles: [bed, pillow, nightstand, cabecero, cobija, almohada2, lampBase], mattress, lampShade };
 
             // Encimera de mármol
             box(3.6, 0.05, 1.05, 4, 0.925, 4, shiny(new THREE.MeshStandardMaterial({ color: 0xe6e6e6, roughness: 0.15, metalness: 0.1 }), 0.9));
@@ -1804,6 +1830,7 @@
             let phase = 'tutorial'; const T = { move: false, look: false, lamp: false, q: null }; let lampOn = true;
             glassMat.color.setRGB(0.1, 0.12, 0.24); if (sunBeamMat) sunBeamMat.opacity = 0;
             act(lampShade, 'lamp'); act(mattress, 'bed');
+            cargarModeloDormitorio(); // ✨ NUEVO: muebles del dormitorio hechos en Blender
             const M = { dishes: 0, eggs: 0, bread: 0, ate: false, t1: 0, t2: 0, done: false };
             const HUDM = document.getElementById('mission-hud'), pr = document.getElementById('interaction-prompt');
             const eggTxt = ['🥚 Toma los huevos', '🍳 Ponlos en la sartén', '🍳 Friendo…', '🍽️ Llévalos al plato', '🥚 En el plato ✓'];

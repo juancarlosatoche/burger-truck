@@ -214,13 +214,13 @@ for s in (-1, 1):
 box('luz_techo', -0.3, 0.3, 6.2, 6.5, ROOF - 0.03, ROOF, M['brillo_techo'], fijo)
 for s, (x0, x1) in ((-1, (-2.3, -0.4)), (1, (0.4, 2.3))):
     box('visera_%d' % s, x0, x1, 6.7, 6.98, ROOF - 0.07, ROOF - 0.02, M['crema'], fijo, bevel=0.01)
-# Espejo retrovisor con ambientador de hamburguesa 🍔 (un poco hacia el conductor, para que se vea)
+# Espejo retrovisor con ambientador de hamburguesa 🍔 (pegado al techo: así no tapan el camino)
 MX = -0.45
-beam('espejo_brazo', (MX, 6.92, ROOF), (MX, 6.92, 3.66), 0.04, M['oscuro'], fijo)
-box('espejo_marco', MX - 0.32, MX + 0.32, 6.86, 6.94, 3.5, 3.68, M['oscuro'], fijo, bevel=0.02)
-box('espejo_vidrio', MX - 0.29, MX + 0.29, 6.855, 6.86, 3.52, 3.66, M['espejo'], fijo)
-beam('ambientador_hilo', (MX, 6.9, 3.5), (MX, 6.9, 3.3), 0.008, M['oscuro'], fijo)
-AZ = 3.22
+beam('espejo_brazo', (MX, 6.92, ROOF), (MX, 6.92, 3.8), 0.04, M['oscuro'], fijo)
+box('espejo_marco', MX - 0.3, MX + 0.3, 6.86, 6.94, 3.68, 3.82, M['oscuro'], fijo, bevel=0.02)
+box('espejo_vidrio', MX - 0.27, MX + 0.27, 6.855, 6.86, 3.7, 3.8, M['espejo'], fijo)
+beam('ambientador_hilo', (MX, 6.9, 3.68), (MX, 6.9, 3.62), 0.008, M['oscuro'], fijo)
+AZ = 3.5   # arriba, para que no tape el camino
 cyl('ambientador_pan_abajo', (MX, 6.9, AZ), 0.07, 0.03, 'Y', M['pan'], fijo, segs=10)
 box('ambientador_carne', MX + (-0.075), MX + 0.075, 6.885, 6.915, AZ + 0.02, AZ + 0.05, M['carne'], fijo)
 box('ambientador_queso', MX + (-0.07), MX + 0.07, 6.882, 6.918, AZ + 0.05, AZ + 0.065, M['queso'], fijo)

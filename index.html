@@ -586,6 +586,9 @@
             g.scale.setScalar(1.25 * (look.size || 1));
             return g;
         }
+        // ✨ NUEVO: versión de los modelos 3D. Si cambias un .glb, cambia este texto: así el navegador baja el modelo
+        // nuevo en vez de usar una copia vieja guardada (si no, se mezclan código nuevo con modelos viejos).
+        const VERSION_MODELOS = '?v=2026-10-23c';
         // ✨ NUEVO: modelos 3D de los clientes (hechos con Tripo). Si no cargan, se usa la persona dibujada con código.
         const ARCHIVOS_CLIENTES = ['customer_a.glb', 'customer_b.glb', 'customer_c.glb']; // A: sudadera verde, B: chaqueta azul, C: suéter rosa
         const modelosClientes = [null, null, null]; // aquí se guardan cuando terminan de cargar
@@ -598,7 +601,7 @@
             cargarModeloCocina(); // ✨ NUEVO: cocina de adentro del truck hecha en Blender
             cargarModeloCabina(); // ✨ NUEVO: cabina con volante para manejar en primera persona
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
-                cargador.load('assets/models/characters/' + archivo, (gltf) => {
+                cargador.load('assets/models/characters/' + archivo + VERSION_MODELOS, (gltf) => {
                     modelosClientes[i] = gltf.scene;
                     gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
                     customers.forEach(ponerModeloCliente); // también a los que ya están en la fila
@@ -944,7 +947,7 @@
         let plazaCodigo = [];
         function cargarModeloPlaza() {
             if (!THREE.GLTFLoader || location.protocol === 'file:') return;
-            new THREE.GLTFLoader().load('assets/models/environment/plaza.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/environment/plaza.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene;
                 if (!raiz.getObjectByName('plaza')) return; // archivo raro: mejor no tocar nada
                 const ya = new Set();
@@ -1026,7 +1029,7 @@
         // ✨ NUEVO: carrocería del food truck hecha en Blender (source/blender/build_food_truck.py).
         // Si el modelo no carga, se queda la carrocería dibujada con código.
         function cargarModeloTruck() {
-            new THREE.GLTFLoader().load('assets/models/props/food_truck.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/props/food_truck.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene;
                 raiz.updateMatrixWorld(true);
                 const piezas = {};
@@ -1083,7 +1086,7 @@
         // ✨ NUEVO: cabina por dentro (source/blender/build_truck_cab.py): tablero, asientos, espejo y un volante que gira.
         // Si no carga, se maneja como antes (cámara detrás del truck).
         function cargarModeloCabina() {
-            new THREE.GLTFLoader().load('assets/models/props/truck_cab.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/props/truck_cab.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene;
                 raiz.updateMatrixWorld(true);
                 const fijo = piezaDeModelo(raiz, 'cab_static');
@@ -1105,7 +1108,7 @@
         // ✨ NUEVO: cocina de adentro del truck hecha en Blender (source/blender/build_truck_interior.py).
         // La plancha, el plato, la computadora y los ingredientes los sigue dibujando el código (se les hace clic).
         function cargarModeloCocina() {
-            new THREE.GLTFLoader().load('assets/models/props/truck_interior.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/props/truck_interior.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene;
                 raiz.updateMatrixWorld(true);
                 const fijo = piezaDeModelo(raiz, 'interior_static');
@@ -1454,7 +1457,7 @@
         // El colchón y la pantalla de la lámpara del modelo reciben los clics; si no carga, queda todo como antes.
         function cargarModeloDormitorio() {
             if (!THREE.GLTFLoader || location.protocol === 'file:' || !dormitorioCodigo) return;
-            new THREE.GLTFLoader().load('assets/models/environment/bedroom.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/environment/bedroom.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene, D = dormitorioCodigo;
                 const muebles = raiz.getObjectByName('dormitorio'), colchon = raiz.getObjectByName('cama_colchon'), pantalla = raiz.getObjectByName('lampara_pantalla');
                 if (!muebles || !colchon || !pantalla) return; // archivo raro: mejor no tocar nada
@@ -1478,7 +1481,7 @@
         // la casa solo deja hacer clic en cosas visibles, así que se apaga su material en vez de esconderlas.
         function cargarModeloCocinaCasa(muebles, tocables) {
             if (!THREE.GLTFLoader || location.protocol === 'file:') return;
-            new THREE.GLTFLoader().load('assets/models/environment/house_kitchen.glb', (gltf) => {
+            new THREE.GLTFLoader().load('assets/models/environment/house_kitchen.glb' + VERSION_MODELOS, (gltf) => {
                 const raiz = gltf.scene;
                 if (!raiz.getObjectByName('cocina_casa')) return; // archivo raro: mejor no tocar nada
                 raiz.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; shiny(o.material, o.material.metalness > 0.5 ? 0.3 : 0.15); } }); // reflejos suaves (si no, el metal se ve azul)

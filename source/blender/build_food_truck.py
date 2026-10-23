@@ -22,11 +22,15 @@ import bpy, bmesh, math, os, sys
 from mathutils import Vector, Matrix
 
 # Carpeta del repo (este archivo vive en source/blender/)
-try:
-    AQUI = os.path.dirname(os.path.abspath(__file__))
-except NameError:
-    AQUI = os.path.dirname(bpy.data.filepath) if bpy.data.filepath else os.getcwd()
-REPO = os.path.abspath(os.path.join(AQUI, '..', '..'))
+def carpeta_repo():
+    try:  # corriendo desde el editor de texto de Blender
+        t = bpy.context.space_data.text
+        if t and t.filepath:
+            return os.path.abspath(os.path.join(os.path.dirname(bpy.path.abspath(t.filepath)), '..', '..'))
+    except AttributeError:
+        pass
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+REPO = carpeta_repo()
 
 # ---------- Medidas (metros del juego) ----------
 W_IN, W_OUT = 2.81, 2.89      # pared exterior: justo afuera de las paredes de adentro (2.80)
@@ -151,8 +155,12 @@ def banded_wall(prefix, axis_fixed, fixed0, fixed1, span0, span1, parent, top=H,
     z_cream = WIN_TOP if skip == 'ventana' else STRIPE_TOP
     B(prefix + '_crema', z_cream, top, M['crema'])
 
-# ---------- Escena limpia ----------
-bpy.ops.wm.read_factory_settings(use_empty=True)
+# ---------- Escena limpia (borra todo lo de la escena, pero deja abierto este script) ----------
+for o in list(bpy.data.objects):
+    bpy.data.objects.remove(o)
+for datos in (bpy.data.meshes, bpy.data.materials, bpy.data.curves):
+    for x in list(datos):
+        datos.remove(x)
 
 M = {
     'rojo': mat('pintura_roja', 0xc8102e, 0.35, 0.15),
@@ -224,7 +232,21 @@ prism('techo_corona_frente', CROWN, 'Y', L, L + 0.08, M['crema'], front)
 box('techo_frente', -W_OUT - 0.08, W_OUT + 0.08, L, L + 0.08, H, H + 0.1, M['blanco'], front)
 CW = 2.72  # mitad del ancho de la cabina
 prism('cabina_abajo', [(L, SKIRT), (8.2, SKIRT), (8.35, 0.55), (8.35, 1.95), (8.15, 2.2), (L, 2.2)], 'X', -CW, CW, M['rojo'], front)
-prism('cabina_arriba', [(L, 2.2), (7.57, 2.2), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', -CW, CW, M['crema'], front)
+# Parte de arriba de la cabina: HUECA, con huecos de verdad para las ventanas
+# (desde el asiento del conductor se ve hacia afuera; el vidrio lo hace transparente el juego)
+prism('cabina_techo', [(L, 3.85), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', -CW, CW, M['crema'], front)
+d_ws = Vector((7.0 - 7.57, 3.85 - 2.2)).normalized()   # dirección del parabrisas (de abajo hacia arriba)
+n_in = Vector((-d_ws.y, d_ws.x)) * 0.1                 # hacia adentro de la cabina
+for s in (-1, 1):
+    x0, x1 = (CW - 0.04, CW) if s > 0 else (-CW, -CW + 0.04)
+    y_win = 7.57 - 0.57 * (3.62 - 2.2) / 1.65           # dónde corta el parabrisas a la altura de la ventana
+    prism('cabina_lado_abajo_%d' % s, [(L, 2.2), (7.57, 2.2), (7.49, 2.42), (L, 2.42)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_lado_arriba_%d' % s, [(L, 3.62), (y_win, 3.62), (7.0, 3.85), (6.8, 4.02), (L, 4.02)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_poste_atras_%d' % s, [(L, 2.42), (5.9, 2.42), (5.9, 3.62), (L, 3.62)], 'X', x0, x1, M['crema'], front)
+    prism('cabina_poste_frente_%d' % s, [(7.35, 2.42), (7.49, 2.42), (y_win, 3.62), (6.92, 3.62)], 'X', x0, x1, M['crema'], front)
+    # postes a los lados del parabrisas (de afuera hacia adentro)
+    xa, xb = (CW - 0.2, CW) if s > 0 else (-CW, -CW + 0.2)
+    prism('parabrisas_poste_%d' % s, [(7.57, 2.2), (7.0, 3.85), (7.0 + n_in.x, 3.85 + n_in.y), (7.57 + n_in.x, 2.2 + n_in.y)], 'X', xa, xb, M['crema'], front)
 box('cabina_linea', -CW - 0.02, CW + 0.02, L, 8.37, RED_TOP, STRIPE_TOP, M['blanco'], front)
 box('cabina_faldon', -CW + 0.02, CW - 0.02, L, 8.2, 0.0, SKIRT, M['oscuro'], front)
 # Parabrisas inclinado
@@ -323,30 +345,46 @@ cyl('hamb_pan_arriba1', (SX - 0.03, 0, BZ + 0.66), 0.8, 0.26, 'Z', M['pan'], sig
 cyl('hamb_pan_arriba2', (SX - 0.03, 0, BZ + 0.9), 0.62, 0.22, 'Z', M['pan'], sign, segs=12, r2=0.3)
 
 # ---------- Guardar y exportar ----------
+def exportar_para_juego(root, piezas, glb_path):
+    """Exporta una COPIA donde las partes de cada pieza se unen por material
+    (muchos menos "draw calls" = más rápido en el navegador). La escena se queda con las partes separadas."""
+    col = bpy.data.collections.new('para_el_juego')
+    bpy.context.scene.collection.children.link(col)
+    col.objects.link(root)
+    temporales, n_tri = [], 0
+    for pieza in piezas:
+        col.objects.link(pieza)
+        grupos = {}
+        for o in [c for c in pieza.children if c.type == 'MESH']:
+            grupos.setdefault(o.data.materials[0].name, []).append(o)
+        for mname, objs in grupos.items():
+            bm = bmesh.new()
+            for o in objs:
+                bm.from_mesh(o.data)
+            n_tri += sum(len(f.verts) - 2 for f in bm.faces)
+            me = bpy.data.meshes.new(pieza.name + '_' + mname)
+            bm.to_mesh(me)
+            bm.free()
+            me.materials.append(bpy.data.materials[mname])
+            unido = bpy.data.objects.new(pieza.name + '_' + mname, me)
+            col.objects.link(unido)
+            unido.parent = pieza
+            temporales.append(unido)
+    vl = bpy.context.view_layer
+    vl.active_layer_collection = vl.layer_collection.children[col.name]
+    bpy.ops.export_scene.gltf(filepath=glb_path, export_format='GLB', export_yup=True, export_apply=True,
+                              export_cameras=False, export_lights=False, use_active_collection=True)
+    vl.active_layer_collection = vl.layer_collection
+    for o in temporales:
+        me = o.data
+        bpy.data.objects.remove(o)
+        bpy.data.meshes.remove(me)
+    bpy.data.collections.remove(col)
+    print('OK %s: %d mallas para el juego, ~%d triángulos, %.0f KB' % (
+        os.path.basename(glb_path), len(temporales), n_tri, os.path.getsize(glb_path) / 1024))
+
 blend_path = os.path.join(REPO, 'source', 'blender', 'food_truck.blend')
 glb_path = os.path.join(REPO, 'assets', 'models', 'props', 'food_truck.glb')
 os.makedirs(os.path.dirname(glb_path), exist_ok=True)
+exportar_para_juego(root, [front, middle, rear, sign], glb_path)
 bpy.ops.wm.save_as_mainfile(filepath=blend_path)   # el .blend guarda cada parte con su nombre
-
-# Para el juego: une las partes de cada pieza por material (muchos menos "draw calls" = más rápido en el navegador)
-for piece in (front, middle, rear, sign):
-    groups = {}
-    for o in [c for c in piece.children if c.type == 'MESH']:
-        groups.setdefault(o.data.materials[0].name, []).append(o)
-    for mname, objs in groups.items():
-        bm = bmesh.new()
-        for o in objs:
-            bm.from_mesh(o.data)
-        me = bpy.data.meshes.new(piece.name + '_' + mname)
-        bm.to_mesh(me)
-        bm.free()
-        me.materials.append(bpy.data.materials[mname])
-        joined = link(bpy.data.objects.new(piece.name + '_' + mname, me))
-        joined.parent = piece
-        for o in objs:
-            bpy.data.objects.remove(o)
-bpy.ops.export_scene.gltf(filepath=glb_path, export_format='GLB', export_yup=True, export_apply=True,
-                          export_cameras=False, export_lights=False)
-tris = sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == 'MESH' for p in o.data.polygons)
-print('OK food truck: %d objetos, ~%d triángulos, %.0f KB' % (
-    len([o for o in bpy.data.objects if o.type == 'MESH']), tris, os.path.getsize(glb_path) / 1024))

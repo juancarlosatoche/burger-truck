@@ -215,6 +215,7 @@
         const drive = { x: 14, z: 24, th: -Math.PI / 2, sp: 0, arrived: false, cam: new THREE.Vector3(), hudT: 0, zone: [], zoneMat: null }; // 🚚 conducción
         let homeHour = 23.5, sunBeamMat = null; // la casa empieza de noche
         let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
+        let carroceriaCodigo = [], toldoCodigo = null, letreroPlaza = []; // ✨ NUEVO: lo que se esconde cuando carga el truck de Blender
 
         // =====================================================================
         // ✨ NUEVO: LUZ, CIELO, BRILLO Y REFLEJOS
@@ -590,6 +591,7 @@
         function cargarModelos() {
             if (!THREE.GLTFLoader || location.protocol === 'file:') return; // abriendo el archivo con doble clic no se pueden cargar modelos
             const cargador = new THREE.GLTFLoader();
+            cargarModeloTruck(); // ✨ NUEVO: carrocería del food truck hecha en Blender
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
                 cargador.load('assets/models/characters/' + archivo, (gltf) => {
                     modelosClientes[i] = gltf.scene;
@@ -846,6 +848,7 @@
             sign.rotation.y = Math.PI / 2;
             lampMats.push({ mat: signMat, basic: true, min: 0.85, max: 2.6 });
             const signBack = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.6, 6.15), mat(0x2a2a30, { roughness: 0.5 })), 52.78, 6.9, 50);
+            letreroPlaza = [sign, signBack]; // ✨ NUEVO: el modelo de Blender trae el letrero encima del truck
             // Pizarra con el menú
             const board = makeTex('#1f3b2d', (c, n) => {
                 c.fillStyle = '#f5f5dc'; c.textAlign = 'center'; c.font = 'bold 38px Fredoka, sans-serif'; c.fillText('MENÚ', 128, 52);
@@ -931,6 +934,7 @@
         // ✨ NUEVO: carrocería exterior del food truck (antes solo existían las paredes de adentro)
         function buildTruckExterior() {
             const G = foodTruckGroup;
+            const antes = G.children.length; // ✨ NUEVO: para saber qué partes son de la carrocería dibujada con código
             const paint = shiny(new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.35, metalness: 0.15 }), 0.7);
             const cream = shiny(new THREE.MeshStandardMaterial({ color: 0xf6ead2, roughness: 0.4, metalness: 0.1 }), 0.55);
             const chrome = shiny(new THREE.MeshStandardMaterial({ color: 0xdfe4e8, roughness: 0.18, metalness: 0.9 }), 1.2);
@@ -983,6 +987,47 @@
             const ledMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffc65e, emissiveIntensity: 1 });
             lampMats.push({ mat: ledMat, min: 0.3, max: 7 });
             for (let i = 0; i < 12; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), ledMat); b.position.set(2.45, 1.87, -1.6 + i * 0.29); G.add(b); }
+            carroceriaCodigo = G.children.slice(antes); // ✨ NUEVO: se esconden cuando carga el modelo de Blender
+        }
+
+        // ✨ NUEVO: carrocería del food truck hecha en Blender (source/blender/build_food_truck.py).
+        // Si el modelo no carga, se queda la carrocería dibujada con código.
+        function cargarModeloTruck() {
+            new THREE.GLTFLoader().load('assets/models/props/food_truck.glb', (gltf) => {
+                const raiz = gltf.scene;
+                raiz.updateMatrixWorld(true);
+                const piezas = {};
+                ['truck_front', 'truck_middle', 'truck_rear', 'truck_sign'].forEach(nombre => {
+                    const pieza = raiz.getObjectByName(nombre);
+                    if (!pieza) return;
+                    // la pieza trae la escala del Blender (×0.5 ancho/largo, ×0.56 alto); la copiamos a la pieza misma
+                    pieza.matrixWorld.decompose(pieza.position, pieza.quaternion, pieza.scale);
+                    pieza.traverse(o => {
+                        if (!o.isMesh) return;
+                        o.castShadow = true; o.receiveShadow = true;
+                        shiny(o.material, o.material.metalness > 0.5 ? 1.2 : 0.6);
+                        // los materiales "luz_..." brillan más de noche (como los faroles)
+                        if (o.material.name.startsWith('luz_') && !o.material.userData.yaEsLuz) {
+                            o.material.userData.yaEsLuz = true;
+                            const freno = o.material.name === 'luz_freno';
+                            lampMats.push({ mat: o.material, min: freno ? 2.5 : 0.3, max: freno ? 3 : 4 });
+                        }
+                    });
+                    const caja = new THREE.Group(); // cada pieza va en su propia "caja" para poder estirarla o correrla
+                    caja.add(pieza);
+                    foodTruckGroup.add(caja);
+                    piezas[nombre] = caja;
+                });
+                if (!piezas.truck_middle) return; // archivo raro: mejor no tocar nada
+                // 🚚 "Ampliar": el medio se estira y la parte de atrás se corre (igual que la carrocería de código)
+                truckParts.push({ o: piezas.truck_middle, mode: 'stretch', z: 0, len: 5.69 });
+                if (piezas.truck_rear) truckParts.push({ o: piezas.truck_rear, mode: 'rear', z: 0 });
+                // esconder lo dibujado con código que el modelo reemplaza
+                carroceriaCodigo.forEach(o => o.visible = false);
+                if (toldoCodigo) toldoCodigo.visible = false;
+                letreroPlaza.forEach(o => o.visible = false);
+                applyTruckExt(); // por si ya habías comprado la ampliación
+            }, undefined, () => { }); // si falla, se queda el truck dibujado con código
         }
 
         function updateDoor(delta) {
@@ -2104,6 +2149,7 @@
             canopy.position.set(1.9, 2.0, 0);
             canopy.rotation.z = -0.15; canopy.castShadow = true;
             foodTruckGroup.add(canopy);
+            toldoCodigo = canopy; // ✨ NUEVO: el modelo de Blender trae su propio toldo
 
             // --- REFRIGERATOR (REFRIGERADOR CON INGREDIENTES) ---
             const fridgeGroup = new THREE.Group();

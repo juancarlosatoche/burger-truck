@@ -99,3 +99,20 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target's lighting is warmer and dimmer, with a strong orange ceiling light.
   - The target has a bun bag, a spatula and napkins in the foreground near the grill.
   - The window frame now matches the target (wood).
+
+## 2026-10-23: First-person driving with the cab from Blender (`truck_cab.glb`)
+
+- **What:** the decision from 2026-10-22 ("driving becomes first person") is now in the game. `source/blender/build_truck_cab.py` builds the inside of the cab:
+  - dashboard with speedometer and fuel gauge, radio, gear stick, glove box;
+  - seats, door panels, sun visors, roof light;
+  - the rear-view mirror with the **burger air freshener**;
+  - a steering wheel (`cab_volante`). **83 KB, ~1.3k triangles.**
+- **Truck body change:** the top of the cab in `food_truck.glb` is now hollow, with real openings for the windshield and side windows. The game makes the `vidrio` material transparent, so you can see out from the seat and see the dashboard from outside.
+- **Code (`driveUpdate`):** when both the truck body and the cab have loaded, the camera sits in the driver's seat on the left (`OJOS_CONDUCTOR`), looking ahead and a little down (`MIRADA_CONDUCTOR`). The wheel turns when you steer (A/D or joystick). Ignacio's driving logic (speed, steering, parking zone) is unchanged. If a model doesn't load, the old camera behind the truck is used (tested).
+- **Parking zone check:** from the seat, the yellow zone, the arrow and the light beam are easy to see (`reference/screenshots/driving_first_person_2026-10-23_zona.jpg`), so they didn't need to be bigger.
+- **Compared with `driving_first_person.jpg`:**
+  - The target shows the player's **hands** on the wheel. They'll come with the characters track (2A).
+  - The speedometer sits below the view; the target shows it through the wheel.
+  - The target's light is warm golden haze. The game's late-afternoon sky is more purple.
+  - The target's dashboard has more detail (vents, buttons), and the hood shows the truck's colors.
+  - The steering wheel tilts inside the truck's stretched scale (×2 wide, ×1.8 tall), so it's about 10% oval. That's barely visible.

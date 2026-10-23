@@ -38,12 +38,12 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 
 | Asset | Priority | Status |
 |---|---|---|
-| Umbrella tables with stools (×2) | P2 | ⬜ |
-| String lights on poles | P2 | ⬜ |
-| Street lamps | P2 | ⬜ |
-| Menu chalkboard (text stays drawn in code) | P2 | ⬜ |
-| Trees (3–4 varieties, not copy-paste) | P2 | ⬜ |
-| Planters, trash bin | P3 | ⬜ |
+| Umbrella tables with stools (×2) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): wooden chairs with backs instead of stools |
+| String lights on poles | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 3 strands on wooden posts (2 new, crossing the plaza) |
+| Street lamps | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): old-style lanterns; the real lights stay code |
+| Menu chalkboard (text stays drawn in code) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): frame and legs |
+| Trees (3–4 varieties, not copy-paste) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 2 oaks, 2 pines, 1 birch, 1 big bush |
+| Planters, trash bin | P3 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): planters with flowers |
 | Background buildings with lit windows | P3 | ⬜ |
 | Road, sidewalk, grass textures | P2 | ⬜ |
 | Yellow parking zone and arrow (driving) | P3 | Can stay in code | ⬜ |

@@ -85,3 +85,21 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
   - The target has a warmer, brighter interior seen through the window, with shelves, utensils and a range hood. That will come with the truck interior.
   - In the target the cab is on the left as seen from the queue; in the game it's on the right. The layout is the game's, so it stays.
   - The target's wheels have bigger chrome rims, and the red is a little darker and warmer.
+
+## 2026-10-23: Plaza from Blender (`plaza.glb`)
+
+- **What:** `source/blender/build_plaza.py` builds:
+  - two tables with faceted striped umbrellas (orange/cream and teal/cream) and wooden chairs with cushions;
+  - three strands of string lights on wooden posts. One is the original over the queue; two are new and cross the plaza over the tables, like the style target;
+  - six different trees (two oaks, two pines, a birch, a big bush) in the places of the code trees, so there's no copy-paste;
+  - planters with flowers, a green trash bin, the menu board's frame and legs, and two old-style lanterns.
+
+  **256 KB, ~4.4k triangles.** Scale 1, world positions (Blender Y = −z of the game).
+- **What stays code:** the actual lights (PointLights), the menu text, the buildings, the pavement, the street and the clock.
+- **Night lights:** the `luz_foquitos` and `luz_farol` materials join `lampMats`, so they brighten at dusk like the code bulbs did.
+- **Code:** `cargarModeloPlaza()` hides the 72 code-drawn pieces it replaces. If the file can't load, they stay (tested).
+- **Compared with `truck_exterior_night.jpg`:**
+  - Matches now: string lights crossing the plaza on wooden posts, umbrella tables with wooden chairs, rounded dark-green trees, lantern street lamps.
+  - The target has benches and a low wall around the plaza, and its trees are bigger and darker.
+  - The target's ground is warm stone with a lit lawn; ours is the code's gray pavement tiles.
+  - The target's umbrellas are all cream; ours are striped, to tell the two tables apart.

@@ -222,3 +222,16 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - Va en un archivo aparte, no en `CLAUDE.md`, porque `CLAUDE.md` se lee completo al empezar cada sesión, aunque no se toque el código.
 - Usa nombres de funciones y comentarios («landmarks»), no números de línea, que cambian con cada edición.
 - `tools/revisar_mapa.py` falla si el mapa nombra algo que ya no existe o si falta una función nueva. GitHub lo corre en cada pull request.
+
+## 2026-10-23: Bosque y camino de tierra entre la casa y la plaza
+
+- Las referencias salieron de `prompts/06_bosque_camino.md`: la hoja de plantas (`reference/environment/bosque_hoja.png`), el plano (`bosque_plano.png`) y el objetivo de estilo desde el asiento del conductor (`reference/style-targets/camino_bosque.png`).
+- **Camino:** sale de donde arranca el truck `(14, 24)`, sigue recto al este, dobla al sur por `x≈36` y entra al patio pavimentado de atrás de la plaza. Desde ahí se dobla al norte y se entra al recuadro amarillo mirando a la flecha, como pide el juego. La lógica de manejo no cambió. Los árboles no chocan con el truck: el camino tiene unos 13 m libres para que manejar siga siendo fácil.
+- **Bosque:** 28 modelos (robles, arces, sicomoro, árbol paraguas, árbol de otoño, árbol de flores rosadas, abetos, pino alto, abedul, álamos, arbustos con bayas y con flores, helechos, cardos, hongos, rocas con musgo, flores, pasto, tronco caído, tocón), repartidos al azar con la misma semilla. ~1.260 plantas en total. Cerca del camino hay más color (flores rosadas, otoño); lejos, más pinos y robles. Hay una laguna con juncos y un claro con hongos, como en el plano. No hay árboles en la casa, la plaza, la fila de clientes, la calle ni el patio.
+- **"Vibrante" sin romper el estilo:** el color fuerte va en flores, bayas, el árbol rosado y los de otoño; las hojas son de varios verdes naturales.
+- **Para que vaya rápido:** cada modelo se guarda una sola vez en el `.glb` con dónde va cada copia (opción `copias=` de `guardar()`), y el juego dibuja juntas las copias iguales (`InstancedMesh`) por zonas de 100 m. Cada planta usa **un solo material** con los colores pintados en sus partes (`unir(..., colores=mat_colores(...))`), así un árbol entero es una sola llamada de dibujo: el bosque pasó de 892 grupos a 110. Las plantas chiquitas no dan sombra.
+- **Pasto:** el pasto del mundo (`buildTruckSurroundings`) pasó de casi negro a un verde más fresco, como en el objetivo de estilo. También se ve en la plaza.
+- **Herramientas nuevas en `lib_blender.py`:** `ico` (estaba copiada en `build_plaza.py`), `unir`, `mat_colores` y `copias=`. Los 12 `.glb` de antes salen byte por byte iguales.
+- **`tools/probar.py`:** ahora espera a que el juego cambie de escena antes de poner la cámara. Sin tarjeta gráfica los cuadros son lentos, y el teletransporte al truck llegaba tarde y metía la cámara adentro del truck.
+- **Diferencias que quedan con el objetivo de estilo:** el objetivo tiene rayos de sol entre los árboles y más neblina dorada; los árboles del objetivo están un poco más pegados al camino; y la casa no se ve al empezar a manejar (el juego la esconde al salir).
+

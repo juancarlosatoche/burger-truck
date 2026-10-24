@@ -193,3 +193,11 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - Los clientes que piden combo tienen **30 s más de paciencia** (`COMBO_TIEMPO_EXTRA`), porque hay que hacer dos cosas.
 - `platoCoincide(receta)` revisa el plato para hamburguesas, papas y combos; lo usan los clientes, los pedidos a domicilio y los avisos.
 - Si arman una Clásica sin papas, el aviso recuerda que con papas sería el Combo Clásica.
+
+## 2026-10-23: Freidora, papas crudas y edificios hechos en Blender
+
+- Ignacio generó las referencias con `prompts/05_papas_freidora_edificios.md`. Están en `reference/props/` y `reference/environment/`.
+- **Freidora:** la canasta es una pieza aparte. Mientras fríe, baja al aceite con las papas adentro, y sube cuando están listas. El foquito naranja titila mientras fríe. El aceite es un poco transparente para ver las papas.
+- **Papas crudas:** bandeja de acero con palitos pálidos, en la nevera y en la mano. Las del código siguen recibiendo el clic (son invisibles).
+- **Edificios:** 5 distintos (ladrillo con tanque, torre azul, tiendas con toldos, crema con balcones, esquina redonda), en los mismos lugares que las cajas de antes. No dan ni reciben sombras: están lejos, y así se ven más limpios y el juego va más rápido.
+- Los tres modelos se cargan aparte. Si alguno falla, se queda el dibujado con código.

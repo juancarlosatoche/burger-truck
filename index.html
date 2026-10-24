@@ -219,6 +219,7 @@
         let truckExt = 0, truckParts = []; // 🚚 cuánto se ha ampliado el food truck (largo extra)
         let dormitorioCodigo = null; // ✨ NUEVO: muebles del dormitorio dibujados con código (se esconden si carga el modelo de Blender)
         let carroceriaCodigo = [], toldoCodigo = null, letreroPlaza = []; // ✨ NUEVO: lo que se esconde cuando carga el truck de Blender
+        let edificiosCodigo = []; // ✨ NUEVO: edificios de caja dibujados con código (se esconden si carga el modelo)
         let cocinaCodigo = [], puertaNeveraCodigo = []; // ✨ NUEVO: muebles de la cocina dibujados con código (se esconden si carga el modelo)
         let carroceriaLista = false, cabinaLista = false, volanteGiro = null; // ✨ NUEVO: para manejar desde el asiento del conductor
 
@@ -601,7 +602,7 @@
         }
         // ✨ NUEVO: versión de los modelos 3D. Si cambias un .glb, cambia este texto: así el navegador baja el modelo
         // nuevo en vez de usar una copia vieja guardada (si no, se mezclan código nuevo con modelos viejos).
-        const VERSION_MODELOS = '?v=2026-10-23c';
+        const VERSION_MODELOS = '?v=2026-10-23d';
         // ✨ NUEVO: modelos 3D de los clientes (hechos con Tripo). Si no cargan, se usa la persona dibujada con código.
         const ARCHIVOS_CLIENTES = ['customer_a.glb', 'customer_b.glb', 'customer_c.glb']; // A: sudadera verde, B: chaqueta azul, C: suéter rosa
         const modelosClientes = [null, null, null]; // aquí se guardan cuando terminan de cargar
@@ -613,6 +614,8 @@
             cargarModeloTruck(); // ✨ NUEVO: carrocería del food truck hecha en Blender
             cargarModeloCocina(); // ✨ NUEVO: cocina de adentro del truck hecha en Blender
             cargarModeloCabina(); // ✨ NUEVO: cabina con volante para manejar en primera persona
+            cargarModeloFreidora(); // ✨ NUEVO: freidora de Blender con canasta que sube y baja
+            cargarModeloPapasCrudas(); // ✨ NUEVO: bandeja de papas crudas de Blender (en la nevera)
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
                 cargador.load('assets/models/characters/' + archivo + VERSION_MODELOS, (gltf) => {
                     modelosClientes[i] = gltf.scene;
@@ -925,8 +928,8 @@
             const bMat = new THREE.MeshStandardMaterial({ map: wt, emissiveMap: wt, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.9 });
             lampMats.push({ mat: bMat, min: 0.08, max: 1.5 });
             [[82, 30, 9, 12], [84, 41, 7, 18], [83, 52, 10, 14], [85, 63, 8, 20], [82, 73, 9, 11]].forEach(([x, z, w, h]) => {
-                add(new THREE.Mesh(new THREE.BoxGeometry(6, h, w), bMat), x, h / 2, z);
-                add(new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.4, w + 0.3), mat(0x151c24)), x, h + 0.2, z);
+                edificiosCodigo.push(add(new THREE.Mesh(new THREE.BoxGeometry(6, h, w), bMat), x, h / 2, z)); // ✨ NUEVO: se guardan para esconderlos
+                edificiosCodigo.push(add(new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.4, w + 0.3), mat(0x151c24)), x, h + 0.2, z));
             });
             // Farola que ilumina a los clientes
             const lampHeadMat = new THREE.MeshStandardMaterial({ color: 0xfff1b0, emissive: 0xffd45e, emissiveIntensity: 1.8 });
@@ -955,10 +958,31 @@
             const exit_ = add(new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ex), color: new THREE.Color(1.5, 1.5, 1.5) })), 50, 4.25, 55.36);
             exit_.rotation.y = Math.PI;
             cargarModeloPlaza(); // ✨ NUEVO: mesas, guirnaldas, árboles y faroles hechos en Blender
+            cargarModeloEdificios(); // ✨ NUEVO: 5 edificios distintos hechos en Blender
         }
 
         // ✨ NUEVO: plaza hecha en Blender (source/blender/build_plaza.py). Si no carga, se queda la dibujada con código.
         let plazaCodigo = [];
+        // ✨ NUEVO: 5 edificios distintos (source/blender/build_edificios.py), con ventanas que se prenden al anochecer.
+        // Si no carga, se quedan los edificios de caja dibujados con código.
+        function cargarModeloEdificios() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:') return;
+            new THREE.GLTFLoader().load('assets/models/environment/edificios.glb' + VERSION_MODELOS, (gltf) => {
+                const raiz = gltf.scene;
+                if (!raiz.getObjectByName('edificios')) return; // archivo raro: mejor no tocar nada
+                let ventanas = null;
+                raiz.traverse(o => {
+                    if (!o.isMesh) return;
+                    o.castShadow = o.receiveShadow = false; // están lejos: sin sombras se ven más limpios y el juego va más rápido
+                    if (o.material.name === 'luz_ventana') ventanas = o.material;
+                });
+                if (ventanas) lampMats.push({ mat: ventanas, min: 0.08, max: 1.5 }); // igual que las ventanas de antes
+                scene.add(raiz); // no está escalado: el modelo va tal cual
+                edificiosCodigo.forEach(o => o.visible = false);
+                setTimeOfDay(currentScene === 'FOOD_TRUCK' ? 17 + gameMin / 60 : homeHour);
+            }, undefined, () => { });
+        }
+
         function cargarModeloPlaza() {
             if (!THREE.GLTFLoader || location.protocol === 'file:') return;
             new THREE.GLTFLoader().load('assets/models/environment/plaza.glb' + VERSION_MODELOS, (gltf) => {
@@ -2508,6 +2532,7 @@
                     m.position.set(...d.pos(slot));
                     m.castShadow = true;
                     m.userData = { type: 'INGREDIENT', ingredientType: type, label: d.label, slot };
+                    if (type === 'PAPAS_CRUDAS') vestirPapasCrudas(m); // ✨ NUEVO: con el modelo de Blender si ya cargó
                     foodTruckGroup.add(m);
                     interactableObjects.push(m);
                     added++;
@@ -2633,6 +2658,12 @@
                 return;
             }
 
+            if (heldItem.type === 'PAPAS_CRUDAS' && modeloPapasCrudas) { // ✨ NUEVO: la bandeja de Blender en la mano
+                heldItemMesh = modeloPapasCrudas.clone(); heldItemMesh.position.y = -0.01;
+                handSocket.add(heldItemMesh); handGroup.visible = true;
+                return;
+            }
+
             let geo;
             if (heldItem.type === 'PAPAS_CRUDAS') {
                 geo = new THREE.BoxGeometry(0.1, 0.045, 0.08); // ✨ NUEVO: bolsita de papas crudas
@@ -2716,7 +2747,50 @@
             // Se puede hacer clic en el cuerpo y en el aceite
             [cuerpo, aceite].forEach(m => { m.userData = { type: 'FRYER' }; interactableObjects.push(m); });
             foodTruckGroup.add(g);
-            freidora = { estado: 'vacia', t: 0, papas, burbujas, mat };
+            // ✨ NUEVO: piezas dibujadas con código (las papas y burbujas se quedan aunque cargue el modelo)
+            const codigo = g.children.filter(o => o !== papas && !burbujas.includes(o));
+            freidora = { estado: 'vacia', t: 0, papas, burbujas, mat, grupo: g, codigo, clic: [cuerpo, aceite], nivel: 0.2, canasta: null, foco: null };
+        }
+
+        // ✨ NUEVO: freidora de Blender (source/blender/build_freidora_papas.py). La canasta baja al aceite cuando fríes.
+        const matInvisible = new THREE.MeshBasicMaterial({ visible: false }); // no se ve, pero se le puede hacer clic
+        function cargarModeloFreidora() {
+            new THREE.GLTFLoader().load('assets/models/props/freidora.glb' + VERSION_MODELOS, (gltf) => {
+                const f = freidora, raiz = gltf.scene;
+                const canasta = raiz.getObjectByName('freidora_canasta');
+                if (!f || !canasta) return; // archivo raro: se queda la freidora del código
+                raiz.traverse(o => {
+                    if (!o.isMesh) return;
+                    o.castShadow = true; o.receiveShadow = true;
+                    shiny(o.material, o.material.metalness > 0.5 ? 1.0 : 0.4);
+                    if (o.material.name === 'aceite') { o.material.transparent = true; o.material.opacity = 0.8; o.castShadow = false; } // se ven las papas adentro
+                    if (o.material.name === 'luz_piloto') f.foco = o.material;
+                });
+                f.grupo.add(raiz);
+                f.codigo.forEach(o => { if (f.clic.includes(o)) o.material = matInvisible; else o.visible = false; });
+                // Las papas van DENTRO de la canasta, así suben y bajan con ella
+                f.papas.position.y = 0.075;
+                raiz.updateMatrixWorld(true); canasta.attach(f.papas);
+                f.canasta = canasta; f.nivel = 0.155; // el aceite del modelo está un poquito más abajo
+                canasta.position.y = 0.24; // empieza colgada arriba
+            }, undefined, () => { });
+        }
+
+        // ✨ NUEVO: bandeja de papas crudas de Blender. Se pone "adentro" de cada papa de la nevera (que no se ve, pero recibe el clic).
+        let modeloPapasCrudas = null;
+        function vestirPapasCrudas(m) {
+            if (!modeloPapasCrudas || m.userData.vestida) return;
+            const c = modeloPapasCrudas.clone(); c.position.y = -0.03; // apoyada en el estante
+            m.material = matInvisible; m.add(c); m.userData.vestida = true;
+        }
+        function cargarModeloPapasCrudas() {
+            new THREE.GLTFLoader().load('assets/models/props/papas_crudas.glb' + VERSION_MODELOS, (gltf) => {
+                if (!gltf.scene.getObjectByName('papas_crudas')) return;
+                gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; shiny(o.material, 0.35); } });
+                modeloPapasCrudas = gltf.scene;
+                interactableObjects.filter(o => o.userData.ingredientType === 'PAPAS_CRUDAS').forEach(vestirPapasCrudas);
+                if (heldItem && heldItem.type === 'PAPAS_CRUDAS') updateHeld3DMesh();
+            }, undefined, () => { });
         }
 
         function construirCajasPapas() {
@@ -2765,12 +2839,15 @@
                 b.visible = activa || f.estado === 'lista';
                 if (!b.visible) return;
                 const vel = activa ? 0.012 : 0.004;
-                b.position.y = 0.2 + Math.abs(Math.sin(time * vel + b.userData.f)) * (activa ? 0.025 : 0.008);
+                b.position.y = f.nivel + Math.abs(Math.sin(time * vel + b.userData.f)) * (activa ? 0.025 : 0.008);
             });
+            // ✨ NUEVO: la canasta de Blender baja al aceite mientras fríe y sube cuando terminan
+            if (f.canasta) f.canasta.position.y += ((activa ? 0 : 0.24) - f.canasta.position.y) * Math.min(1, delta * 5);
+            if (f.foco) f.foco.emissiveIntensity = activa ? 3 + Math.sin(time * 0.01) : 1.2; // el foquito titila mientras fríe
             if (!activa) return;
             f.t += delta;
             f.mat.color.copy(COLOR_CRUDA).lerp(COLOR_FRITA, Math.min(1, f.t / TIEMPO_FREIR));
-            f.papas.position.y = 0.17 + Math.sin(time * 0.02) * 0.004; // se mueven un poquito
+            if (!f.canasta) f.papas.position.y = 0.17 + Math.sin(time * 0.02) * 0.004; // se mueven un poquito (sin el modelo)
             if (f.t >= TIEMPO_FREIR) { f.estado = 'lista'; showBannerNotification('✨ ¡Papas doradas! Haz clic en la freidora para sacarlas.'); }
         }
 

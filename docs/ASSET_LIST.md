@@ -31,6 +31,9 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Service counter, plate | P1 | | ✅ in game via `truck_interior.glb` (`source/blender/build_truck_interior.py`): both counters; the clickable plate stays code |
 | Ingredients: bun bottom, bun top, raw patty, cooked patty, cheese, lettuce, tomato | P1 | 7 small models, each must also look right in the hand | ⬜ |
 | Cash register, soda machine, ketchup, mustard | P2 | | ✅ in game via `truck_interior.glb` (`source/blender/build_truck_interior.py`) (plus shelves, jars, utensils, napkins, cups, order tickets) |
+| Deep fryer with wire basket (new: fries) | P1 | Reference: `reference/props/freidora_*.jpg` (Ignacio). Basket as a separate piece so it can move | ✅ in game via `freidora.glb` (`source/blender/build_freidora_papas.py`, 83 KB): `freidora_cuerpo`, `freidora_aceite`, `freidora_canasta` (code lowers it into the oil while frying); clicks stay on the code shapes |
+| Raw fries tray in the fridge (new: fries) | P1 | Reference: `reference/props/papas_crudas.jpg` (Ignacio) | ✅ in game via `papas_crudas.glb` (`source/blender/build_freidora_papas.py`, 59 KB): also shown in the hand |
+| Fries box and cooked fries | P1 | Red box with 🍟, no real brand logos | 🟡 drawn in code |
 | Computer (monitor + keyboard) | P2 | Screen stays a canvas texture drawn in code | ⬜ |
 | Rear door with window, EXIT sign, wall clock | P2 | Clock face stays drawn in code (it shows game time) | ⬜ |
 
@@ -44,7 +47,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Menu chalkboard (text stays drawn in code) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): frame and legs |
 | Trees (3–4 varieties, not copy-paste) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 2 oaks, 2 pines, 1 birch, 1 big bush |
 | Planters, trash bin | P3 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): planters with flowers |
-| Background buildings with lit windows | P3 | ⬜ |
+| Background buildings with lit windows | P3 | ✅ in game via `assets/models/environment/edificios.glb` (`source/blender/build_edificios.py`, 413 KB, ~7.4k triangles). Reference: `reference/environment/edificios_plaza.jpg` (Ignacio). 5 different buildings; windows with material `luz_ventana` light up at dusk. Code boxes stay as fallback |
 | Road, sidewalk, grass textures | P2 | ⬜ |
 | Yellow parking zone and arrow (driving) | P3 | Can stay in code | ⬜ |
 

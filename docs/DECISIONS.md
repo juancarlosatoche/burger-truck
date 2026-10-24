@@ -186,3 +186,10 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - La freidora va entre la plancha y los panes; las cajas, junto al plato. Las dos se dibujan con código, así funcionan con o sin el modelo de Blender.
 - Las papas se sirven solas (no en el mismo plato que una hamburguesa). Un combo hamburguesa + papas puede ser el siguiente paso.
 - Las cajas son rojas con una 🍟, sin logos de marcas reales.
+
+## 2026-10-23: Combos hamburguesa + papas (idea de Ignacio)
+
+- Nuevos platos **Combo Clásica** ($18) y **Combo Completa** ($24): la hamburguesa y una caja de papas en el mismo plato. La caja va **al lado** de la hamburguesa, así que se puede poner antes o después.
+- Los clientes que piden combo tienen **30 s más de paciencia** (`COMBO_TIEMPO_EXTRA`), porque hay que hacer dos cosas.
+- `platoCoincide(receta)` revisa el plato para hamburguesas, papas y combos; lo usan los clientes, los pedidos a domicilio y los avisos.
+- Si arman una Clásica sin papas, el aviso recuerda que con papas sería el Combo Clásica.

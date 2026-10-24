@@ -523,11 +523,14 @@
             c.fillStyle = '#fffaf0'; rrect(6, 6, 300, 128, 28); c.fill();
             c.beginPath(); c.moveTo(136, 132); c.lineTo(156, 168); c.lineTo(176, 132); c.fill();
             c.textAlign = 'left'; c.textBaseline = 'middle';
-            c.fillStyle = '#2b2118'; c.font = '700 34px Fredoka, sans-serif'; c.fillText(r.n, 26, 46);
             const pt = '$' + r.p; c.font = '700 26px Fredoka, sans-serif'; const pw = c.measureText(pt).width + 22;
+            // ✨ NUEVO: si el nombre es largo (como "Combo Completa"), la letra se hace más pequeña para que quepa
+            let fs = 34; c.font = `700 ${fs}px Fredoka, sans-serif`;
+            while (fs > 18 && c.measureText(r.n).width > 286 - pw - 34) { fs -= 2; c.font = `700 ${fs}px Fredoka, sans-serif`; }
+            c.fillStyle = '#2b2118'; c.fillText(r.n, 26, 46);
             c.fillStyle = '#f59e0b'; rrect(286 - pw, 28, pw, 36, 18); c.fill();
             c.fillStyle = '#1b1208'; c.textAlign = 'center'; c.fillText(pt, 286 - pw / 2, 47);
-            c.font = '34px sans-serif'; c.fillText(r.s.map(x => EMO[x]).join(''), 156, 98);
+            c.font = `${r.s.length > 6 ? 30 : 34}px sans-serif`; c.fillText(r.s.map(x => EMO[x]).join(''), 156, 98); // ✨ NUEVO: emojis más pequeños si son muchos (combos)
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, fog: false }));
             sp.scale.set(1.5, 0.825, 1); sp.renderOrder = 10; return sp;
         }
@@ -692,7 +695,7 @@
         const queueCount = () => customers.filter(c => c.state === 'queue').length;
         function spawnCustomer(startX, startZ) {
             const r = pick(RECIPES);
-            const c = { recipe: r, state: 'queue', pmax: 70 + 20 * upg.pat, phase: Math.random() * 6 };
+            const c = { recipe: r, state: 'queue', pmax: 70 + 20 * upg.pat + (esCombo(r) ? COMBO_TIEMPO_EXTRA : 0), phase: Math.random() * 6 }; // ✨ NUEVO: combo = más paciencia
             c.patience = c.pmax;
             const g = makePerson(c, { type: 'CLIENT', customer: c }, randLook());
             c.group = g;
@@ -756,7 +759,7 @@
             if (c !== frontCustomer()) return showBannerNotification('⏳ Hay un cliente antes en la fila.');
             const r = c.recipe;
             if (burgerStack.length === 0) return showBannerNotification('🍽️ El plato está vacío. Arma la hamburguesa y toca al cliente.');
-            const ok = burgerStack.length === r.s.length && burgerStack.every((b, i) => b.type === r.s[i]);
+            const ok = platoCoincide(r); // ✨ NUEVO: también entiende los combos
             if (!ok) return showBannerNotification(`❌ Esa no es la ${r.n}. Revisa la receta en la computadora.`);
             while (plateGroup.children.length > 1) plateGroup.remove(plateGroup.children[1]);
             burgerStack.length = 0; updateRecipeHUD();
@@ -870,9 +873,9 @@
             // Pizarra con el menú
             const board = makeTex('#1f3b2d', (c, n) => {
                 c.fillStyle = '#f5f5dc'; c.textAlign = 'center'; c.font = 'bold 38px Fredoka, sans-serif'; c.fillText('MENÚ', 128, 52);
-                c.font = '22px sans-serif';
-                // ✨ NUEVO: renglones más juntos para que quepan las papas
-                RECIPES.forEach((r, i) => { c.textAlign = 'left'; c.fillText(r.n, 24, 100 + i * 36); c.textAlign = 'right'; c.fillText('$' + r.p, 232, 100 + i * 36); });
+                c.font = '18px sans-serif';
+                // ✨ NUEVO: renglones más juntos para que quepan las papas y los combos
+                RECIPES.forEach((r, i) => { c.textAlign = 'left'; c.fillText(r.n, 18, 92 + i * 26); c.textAlign = 'right'; c.fillText('$' + r.p, 238, 92 + i * 26); });
             }, 1, 1, 256);
             const bd = add(new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ map: board, roughness: 0.9 })), 55.6, 1.5, 46.6);
             bd.rotation.y = -Math.PI / 2;
@@ -1159,8 +1162,20 @@
             { n: 'Completa', p: 18, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
             { n: 'Vegetal', p: 10, s: ['PAN_ABAJO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
             { n: 'Doble', p: 24, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] },
-            { n: 'Papas Fritas', p: 8, s: ['PAPAS_CAJA'] } // ✨ NUEVO: papas → freidora → caja
+            { n: 'Papas Fritas', p: 8, s: ['PAPAS_CAJA'] }, // ✨ NUEVO: papas → freidora → caja
+            // ✨ NUEVO: COMBOS = hamburguesa + caja de papas al lado (el cliente espera más tiempo)
+            { n: 'Combo Clásica', p: 18, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA', 'PAPAS_CAJA'] },
+            { n: 'Combo Completa', p: 24, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA', 'PAPAS_CAJA'] }
         ];
+        // ✨ NUEVO: ¿esta receta es un combo? (lleva hamburguesa Y papas)
+        const esCombo = (r) => r.s.includes('PAPAS_CAJA') && r.s.length > 1;
+        const COMBO_TIEMPO_EXTRA = 30; // segundos extra de paciencia para los combos
+        // ✨ NUEVO: ¿lo que hay en el plato es esta receta? Las papas van al lado, así que no importa si se ponen antes o después
+        function platoCoincide(r) {
+            const capas = burgerStack.filter(b => b.type !== 'PAPAS_CAJA'), hayPapas = capas.length !== burgerStack.length;
+            const pasos = r.s.filter(t => t !== 'PAPAS_CAJA'), llevaPapas = pasos.length !== r.s.length;
+            return hayPapas === llevaPapas && capas.length === pasos.length && capas.every((b, i) => b.type === pasos[i]);
+        }
         const CLIENTES = ['Camila R.', 'Andrés P.', 'Laura G.', 'Santiago M.', 'Valentina T.', 'Mateo L.'];
         const CALLES = ['Cra 7 #45-12', 'Calle 80 #20-31', 'Av. 68 #12-05', 'Cra 15 #93-40', 'Calle 26 #50-18'];
         const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -1192,14 +1207,20 @@
             hud.classList.remove('hidden');
             document.getElementById('rh-title').innerText = '🍔 ' + pinnedRecipe.n;
             let bad = false, html = '';
-            pinnedRecipe.s.forEach((t, i) => {
+            // ✨ NUEVO: las papas no van apiladas, se revisan aparte (al final de la lista)
+            const capas = burgerStack.filter(b => b.type !== 'PAPAS_CAJA'), hayPapas = capas.length !== burgerStack.length;
+            const pasos = pinnedRecipe.s.filter(t => t !== 'PAPAS_CAJA'), llevaPapas = pasos.length !== pinnedRecipe.s.length;
+            pasos.forEach((t, i) => {
                 let ic = '⬜', cls = 'text-gray-300';
-                if (i < burgerStack.length) {
-                    if (!bad && burgerStack[i].type === t) { ic = '✅'; cls = 'text-green-300'; }
+                if (i < capas.length) {
+                    if (!bad && capas[i].type === t) { ic = '✅'; cls = 'text-green-300'; }
                     else { bad = true; ic = '❌'; cls = 'text-red-300'; }
-                } else if (i === burgerStack.length && !bad) { ic = '👉'; cls = 'text-amber-300 font-bold'; }
+                } else if (i === capas.length && !bad) { ic = '👉'; cls = 'text-amber-300 font-bold'; }
                 html += `<li class="${cls}">${ic} ${i + 1}. ${LBL[t]}</li>`;
             });
+            if (capas.length > pasos.length) html += '<li class="text-red-300">❌ Sobran ingredientes</li>';
+            if (llevaPapas) html += `<li class="${hayPapas ? 'text-green-300' : 'text-gray-300'}">${hayPapas ? '✅' : '⬜'} 🍟 Caja de papas (al lado)</li>`;
+            else if (hayPapas) html += '<li class="text-red-300">❌ Esta receta no lleva papas</li>';
             document.getElementById('rh-list').innerHTML = html;
         }
         document.getElementById('rh-close').addEventListener('click', (e) => { e.stopPropagation(); pinnedRecipe = null; updateRecipeHUD(); });
@@ -1260,7 +1281,7 @@
         function deliverOrder(id) {
             const o = orders.find(x => x.id === id); if (!o) return;
             if (burgerStack.length === 0) return renderPedidos('❌ El plato está vacío. Arma la hamburguesa en el mostrador.');
-            const ok = burgerStack.length === o.r.s.length && burgerStack.every((b, i) => b.type === o.r.s[i]);
+            const ok = platoCoincide(o.r); // ✨ NUEVO: también entiende los combos
             if (!ok) return renderPedidos(`❌ El plato no coincide con la receta ${o.r.n}. Revisa el orden en Recetas.`);
             while (plateGroup.children.length > 1) plateGroup.remove(plateGroup.children[1]);
             burgerStack.length = 0; updateRecipeHUD();
@@ -2801,15 +2822,15 @@
             // ✨ NUEVO: reglas de las papas
             if (heldItem.type === 'PAPAS_CRUDAS') return showBannerNotification('🥔 Las papas están crudas. Primero fríelas en la freidora.');
             if (heldItem.type === 'PAPAS_FRITAS') return showBannerNotification('🍟 Pon las papas en una caja roja antes de servirlas.');
-            if (burgerStack.some(b => b.type === 'PAPAS_CAJA')) return showBannerNotification('🍟 El plato ya tiene papas. Sírvelas primero.');
             if (heldItem.type === 'PAPAS_CAJA') {
-                if (burgerStack.length) return showBannerNotification('🍔 El plato tiene una hamburguesa. Sírvela primero y luego pon las papas.');
-                const caja = hacerCajaPapas(true); caja.scale.setScalar(1.3); caja.position.y = 0.03;
+                if (burgerStack.some(b => b.type === 'PAPAS_CAJA')) return showBannerNotification('🍟 El plato ya tiene una caja de papas.');
+                // ✨ NUEVO: la caja va AL LADO de la hamburguesa (para los combos), no encima
+                const caja = hacerCajaPapas(true); caja.scale.setScalar(1.3); caja.position.set(0, 0.03, 0.2);
                 plateGroup.add(caja);
-                burgerStack.push({ type: 'PAPAS_CAJA', height: 0.2 });
+                burgerStack.push({ type: 'PAPAS_CAJA', height: 0 }); // altura 0: no sube la hamburguesa
                 updateRecipeHUD();
                 heldItem = null; updateHeld3DMesh(); updateHoldingUI();
-                showBannerNotification('🍟 ¡Papas Fritas listas para servir!');
+                avisarPlato('PAPAS_CAJA');
                 return;
             }
 
@@ -2849,10 +2870,21 @@
             updateHoldingUI();
 
             // ✨ Solo dice "lista" si la hamburguesa coincide con una receta del menú
-            if (placedType === 'PAN_ARRIBA') {
-                const match = RECIPES.find(r => r.s.length === burgerStack.length && r.s.every((t, i) => t === burgerStack[i].type));
-                showBannerNotification(match ? `🍔 ¡${match.n} lista para servir!` : '🤔 Esa combinación no está en el menú. Revisa las recetas.');
-            }
+            if (placedType === 'PAN_ARRIBA') avisarPlato('PAN_ARRIBA');
+        }
+
+        // ✨ NUEVO: dice si lo que hay en el plato ya es algo del menú (hamburguesa, papas o combo)
+        function avisarPlato(tipo) {
+            const match = RECIPES.find(platoCoincide);
+            const hayPapas = burgerStack.some(b => b.type === 'PAPAS_CAJA');
+            const terminada = burgerStack.some(b => b.type === 'PAN_ARRIBA');
+            // ¿Con papas sería un combo?
+            const conPapas = !hayPapas && RECIPES.find(r => esCombo(r) && r.s.filter(t => t !== 'PAPAS_CAJA').length === burgerStack.length && burgerStack.every((b, i) => b.type === r.s[i]));
+            if (match && esCombo(match)) return showBannerNotification(`🍔🍟 ¡${match.n} listo para servir!`);
+            if (match) return showBannerNotification((hayPapas ? `🍟 ¡${match.n} listas para servir!` : `🍔 ¡${match.n} lista para servir!`) + (conPapas ? ` (con papas 🍟 es ${conPapas.n})` : ''));
+            if (tipo === 'PAPAS_CAJA' && !terminada) return showBannerNotification('🍟 Papas en el plato. Arma la hamburguesa al lado para el combo.');
+            if (conPapas) return showBannerNotification(`🍔 Hamburguesa lista. Para el ${conPapas.n}, ponle las papas 🍟`);
+            showBannerNotification('🤔 Esa combinación no está en el menú. Revisa las recetas.');
         }
 
         function dropHeldItem() {

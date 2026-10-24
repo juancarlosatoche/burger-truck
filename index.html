@@ -201,7 +201,9 @@
             LECHUGA: { label: 'Hoja de Lechuga', geo: () => new THREE.CylinderGeometry(0.12, 0.1, 0.02, 8), color: 0x52b788, rough: 0.9, pos: i => [-0.75, 0.62, -2.3 + i * 0.15] },
             TOMATE: { label: 'Rodaja de Tomate', geo: () => new THREE.CylinderGeometry(0.1, 0.1, 0.025, 12), color: 0xe63946, rough: 0.7, pos: i => [-0.75, 0.22, -2.3 + i * 0.15] },
             PAN_ABAJO: { label: 'Pan Base', geo: () => new THREE.CylinderGeometry(0.12, 0.12, 0.04, 16), color: 0xe09f67, rough: 0.8, pos: i => [-0.95, 0.92 + i * 0.08, 1.5] },
-            PAN_ARRIBA: { label: 'Pan Tapa', geo: () => new THREE.CylinderGeometry(0.11, 0.13, 0.06, 16), color: 0xe09f67, rough: 0.8, pos: i => [-0.95, 0.96 + i * 0.08, 1.8] }
+            PAN_ARRIBA: { label: 'Pan Tapa', geo: () => new THREE.CylinderGeometry(0.11, 0.13, 0.06, 16), color: 0xe09f67, rough: 0.8, pos: i => [-0.95, 0.96 + i * 0.08, 1.8] },
+            // ✨ NUEVO: bolsitas de papas crudas en el estante alto de la nevera
+            PAPAS_CRUDAS: { label: 'Papas Crudas 🥔', geo: () => new THREE.BoxGeometry(0.14, 0.06, 0.11), color: 0xf3e3a6, rough: 0.8, pos: i => [-0.75, 1.84, -2.3 + i * 0.15] }
         };
 
         let joyX = 0, joyY = 0; // joystick analógico (-1 a 1)
@@ -447,6 +449,14 @@
                     for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; c.beginPath(); c.ellipse(128 + Math.cos(a) * 58, 128 + Math.sin(a) * 58, 14, 24, a, 0, 7); c.fill(); }
                     c.strokeStyle = 'rgba(255,180,170,0.8)'; c.lineWidth = 5; c.beginPath(); c.arc(128, 128, 118, 0, 7); c.stroke();
                 }, 0.3],
+                // ✨ NUEVO: papas crudas (pálidas) y papas fritas (doradas), con palitos dibujados
+                PAPAS_CRUDAS: ['#efe0a8', c => {
+                    for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(${200 + rr_(0, 40)},${180 + rr_(0, 40)},110,0.8)`; c.save(); c.translate(rr_(0, N), rr_(0, N)); c.rotate(rr_(0, 3)); c.fillRect(-40, -6, 80, 12); c.restore(); }
+                }, 0.8],
+                PAPAS_FRITAS: ['#f0b030', c => {
+                    for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(${230 + rr_(0, 25)},${150 + rr_(0, 50)},${20 + rr_(0, 40)},0.9)`; c.save(); c.translate(rr_(0, N), rr_(0, N)); c.rotate(rr_(0, 3)); c.fillRect(-40, -6, 80, 12); c.restore(); }
+                    blots(c, 60, N, () => `rgba(255,250,220,${rr_(0.2, 0.5)})`, 1, 3); // granitos de sal
+                }, 0.45],
                 PAN: ['#d9903d', c => {
                     const g = c.createRadialGradient(128, 110, 10, 128, 128, 140); g.addColorStop(0, '#f4b867'); g.addColorStop(1, '#a9652a');
                     c.fillStyle = g; c.fillRect(0, 0, N, N);
@@ -502,7 +512,7 @@
         const customers = [];
         const CUST_Z = [-1.5, 0.2, 1.7];                // posición de cada cliente (z local del truck)
         const CUST_X = () => 50 + 2.15 * TRUCK_SCALE;   // justo afuera de la ventana
-        const EMO = { PAN_ABAJO: '🍞', PAN_ARRIBA: '🍞', CARNE_COCINADA: '🥩', QUESO: '🧀', LECHUGA: '🥬', TOMATE: '🍅' };
+        const EMO = { PAN_ABAJO: '🍞', PAN_ARRIBA: '🍞', CARNE_COCINADA: '🥩', QUESO: '🧀', LECHUGA: '🥬', TOMATE: '🍅', PAPAS_CAJA: '🍟' }; // ✨ NUEVO: 🍟
 
         // ✨ NUEVO: globo de diálogo con colita, sombra y precio en etiqueta
         function makeBubble(r) {
@@ -860,8 +870,9 @@
             // Pizarra con el menú
             const board = makeTex('#1f3b2d', (c, n) => {
                 c.fillStyle = '#f5f5dc'; c.textAlign = 'center'; c.font = 'bold 38px Fredoka, sans-serif'; c.fillText('MENÚ', 128, 52);
-                c.font = '24px sans-serif';
-                RECIPES.forEach((r, i) => { c.textAlign = 'left'; c.fillText(r.n, 30, 105 + i * 45); c.textAlign = 'right'; c.fillText('$' + r.p, 226, 105 + i * 45); });
+                c.font = '22px sans-serif';
+                // ✨ NUEVO: renglones más juntos para que quepan las papas
+                RECIPES.forEach((r, i) => { c.textAlign = 'left'; c.fillText(r.n, 24, 100 + i * 36); c.textAlign = 'right'; c.fillText('$' + r.p, 232, 100 + i * 36); });
             }, 1, 1, 256);
             const bd = add(new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ map: board, roughness: 0.9 })), 55.6, 1.5, 46.6);
             bd.rotation.y = -Math.PI / 2;
@@ -1142,12 +1153,13 @@
 
         // --- COMPUTADORA: escritorio con apps ---
         let isPCOpen = false, pcKeys = null, snakeTimer = null, money = 50, nextOrderId = 1;
-        const LBL = { PAN_ABAJO: 'Pan base', CARNE_COCINADA: 'Carne cocinada', QUESO: 'Queso', LECHUGA: 'Lechuga', TOMATE: 'Tomate', PAN_ARRIBA: 'Pan tapa' };
+        const LBL = { PAN_ABAJO: 'Pan base', CARNE_COCINADA: 'Carne cocinada', QUESO: 'Queso', LECHUGA: 'Lechuga', TOMATE: 'Tomate', PAN_ARRIBA: 'Pan tapa', PAPAS_CAJA: 'Caja de papas fritas' }; // ✨ NUEVO: caja de papas
         const RECIPES = [
             { n: 'Clásica', p: 12, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] },
             { n: 'Completa', p: 18, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
             { n: 'Vegetal', p: 10, s: ['PAN_ABAJO', 'LECHUGA', 'TOMATE', 'PAN_ARRIBA'] },
-            { n: 'Doble', p: 24, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] }
+            { n: 'Doble', p: 24, s: ['PAN_ABAJO', 'CARNE_COCINADA', 'QUESO', 'CARNE_COCINADA', 'QUESO', 'PAN_ARRIBA'] },
+            { n: 'Papas Fritas', p: 8, s: ['PAPAS_CAJA'] } // ✨ NUEVO: papas → freidora → caja
         ];
         const CLIENTES = ['Camila R.', 'Andrés P.', 'Laura G.', 'Santiago M.', 'Valentina T.', 'Mateo L.'];
         const CALLES = ['Cra 7 #45-12', 'Calle 80 #20-31', 'Av. 68 #12-05', 'Cra 15 #93-40', 'Calle 26 #50-18'];
@@ -2373,6 +2385,10 @@
             const heat = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.012, 1.22), new THREE.MeshStandardMaterial({ color: 0x200800, emissive: 0xff5a14, emissiveIntensity: 2.6 }));
             heat.position.set(-0.95, 0.895, 0.2); foodTruckGroup.add(heat);
 
+            // ✨ NUEVO: freidora con aceite (entre la plancha y los panes) y cajas para papas (junto al plato)
+            construirFreidora();
+            construirCajasPapas();
+
             // --- SERVICE HATCH & BURGER PLATE (PLATO DE PEDIDOS) ---
             const serviceCounter = recv(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 4.0), stainlessSteelMat));
             serviceCounter.position.set(0.95, 0.45, 0);
@@ -2546,6 +2562,10 @@
                 return;
             }
 
+            // ✨ NUEVO: freidora y cajas de papas
+            if (data.type === 'FRYER') { usarFreidora(); return; }
+            if (data.type === 'FRIES_BOX') { usarCajaPapas(); return; }
+
             // 4. Place Ingredient on Customer Plate (Assembly)
             if (data.type === 'PLATE') {
                 if (heldItem) {
@@ -2583,8 +2603,19 @@
             handPop = 1;
             if (!heldItem) { handGroup.visible = false; return; }
 
+            // ✨ NUEVO: papas fritas sueltas o en su caja
+            if (heldItem.type === 'PAPAS_FRITAS' || heldItem.type === 'PAPAS_CAJA') {
+                heldItemMesh = heldItem.type === 'PAPAS_CAJA' ? hacerCajaPapas(true) : hacerPalitos(12, foodMat('PAPAS_FRITAS'), 0.04, 0.04, 0.06);
+                heldItemMesh.scale.setScalar(0.8);
+                handSocket.add(heldItemMesh);
+                handGroup.visible = true;
+                return;
+            }
+
             let geo;
-            if (heldItem.type.includes('PAN')) {
+            if (heldItem.type === 'PAPAS_CRUDAS') {
+                geo = new THREE.BoxGeometry(0.1, 0.045, 0.08); // ✨ NUEVO: bolsita de papas crudas
+            } else if (heldItem.type.includes('PAN')) {
                 geo = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
             } else if (heldItem.type === 'QUESO') {
                 geo = new THREE.BoxGeometry(0.12, 0.01, 0.12);
@@ -2596,6 +2627,130 @@
             heldItemMesh.position.set(0, 0.012, 0);
             handSocket.add(heldItemMesh);
             handGroup.visible = true;
+        }
+
+        // =====================================================================
+        // ✨ NUEVO: PAPAS FRITAS (nevera → freidora → caja → plato → cliente)
+        // =====================================================================
+        let freidora = null; // { estado: 'vacia' | 'friendo' | 'lista', t, papas, burbujas, mat }
+        const TIEMPO_FREIR = 4.5; // segundos que tardan en dorarse
+        const COLOR_CRUDA = new THREE.Color(0xf3e3a6), COLOR_FRITA = new THREE.Color(0xe9a42a);
+
+        // Muchos palitos de papa juntos
+        function hacerPalitos(n, mat, ancho, fondo, alto) {
+            const g = new THREE.Group(), geo = new THREE.BoxGeometry(0.018, alto, 0.018);
+            for (let i = 0; i < n; i++) {
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(rr_(-ancho, ancho), alto / 2 + rr_(0, alto * 0.3), rr_(-fondo, fondo));
+                p.rotation.set(rr_(-0.35, 0.35), rr_(0, 3), rr_(-0.35, 0.35));
+                p.castShadow = true; g.add(p);
+            }
+            return g;
+        }
+        // Caja roja de papas (conPapas = true le pone papas fritas saliendo por arriba)
+        let cajaPapasMat = null;
+        function hacerCajaPapas(conPapas) {
+            if (!cajaPapasMat) {
+                const tex = makeTex('#d62828', (c, n) => {
+                    c.fillStyle = '#ffd166'; c.fillRect(0, n * 0.62, n, n * 0.1);           // franja amarilla
+                    c.font = `bold ${n * 0.32}px sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+                    c.fillText('🍟', n / 2, n * 0.35);
+                }, 1, 1, 256);
+                cajaPapasMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.55 });
+            }
+            const g = new THREE.Group();
+            // La caja es más ancha arriba que abajo (cilindro de 4 lados)
+            const caja = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.055, 0.13, 4, 1, false, Math.PI / 4), cajaPapasMat);
+            caja.position.y = 0.065; caja.castShadow = true; g.add(caja);
+            if (conPapas) { const pp = hacerPalitos(16, foodMat('PAPAS_FRITAS'), 0.035, 0.035, 0.1); pp.position.y = 0.08; g.add(pp); }
+            return g;
+        }
+
+        function construirFreidora() {
+            const g = new THREE.Group(); g.position.set(-0.95, 0.9, 1.08);
+            const acero = shiny(new THREE.MeshStandardMaterial({ color: 0xbfc5ca, roughness: 0.3, metalness: 0.8 }), 0.9);
+            const negro = new THREE.MeshStandardMaterial({ color: 0x1c1c20, roughness: 0.5 });
+            // Cuerpo de la freidora
+            const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.19, 0.38), acero);
+            cuerpo.position.y = 0.095; cuerpo.castShadow = true; cuerpo.receiveShadow = true; g.add(cuerpo);
+            // Borde alrededor del aceite
+            [[0.36, 0.02, 0, 0.18], [0.36, 0.02, 0, -0.18], [0.02, 0.38, 0.17, 0], [0.02, 0.38, -0.17, 0]].forEach(([w, d, x, z]) => {
+                const b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.035, d), acero); b.position.set(x, 0.2, z); g.add(b);
+            });
+            // Aceite dorado y brillante
+            const aceite = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.01, 0.34),
+                shiny(new THREE.MeshStandardMaterial({ color: 0xd99a1e, emissive: 0x7a4200, emissiveIntensity: 0.5, roughness: 0.05, metalness: 0.3 }), 1.2));
+            aceite.position.y = 0.195; g.add(aceite);
+            // Mango de la canasta (apunta al pasillo) y perillas
+            const mango = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8), negro);
+            mango.rotation.z = Math.PI / 2; mango.position.set(0.24, 0.23, 0); g.add(mango);
+            [-0.08, 0.08].forEach(z => { const k = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.02, 10), new THREE.MeshStandardMaterial({ color: 0xc1121f })); k.rotation.z = Math.PI / 2; k.position.set(0.185, 0.07, z); g.add(k); });
+            // Papas dentro del aceite (escondidas hasta que se usen) con su propio color
+            const mat = new THREE.MeshStandardMaterial({ color: COLOR_CRUDA.clone(), roughness: 0.5 });
+            const papas = hacerPalitos(18, mat, 0.1, 0.1, 0.05); papas.position.y = 0.17; papas.visible = false; g.add(papas);
+            // Burbujitas del aceite caliente
+            const burbujas = [];
+            const bMat = new THREE.MeshStandardMaterial({ color: 0xffe6a0, emissive: 0xffb84d, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 });
+            for (let i = 0; i < 10; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 4), bMat); b.position.set(rr_(-0.13, 0.13), 0.2, rr_(-0.14, 0.14)); b.visible = false; b.userData.f = rr_(0, 6); g.add(b); burbujas.push(b); }
+            // Se puede hacer clic en el cuerpo y en el aceite
+            [cuerpo, aceite].forEach(m => { m.userData = { type: 'FRYER' }; interactableObjects.push(m); });
+            foodTruckGroup.add(g);
+            freidora = { estado: 'vacia', t: 0, papas, burbujas, mat };
+        }
+
+        function construirCajasPapas() {
+            // Pila de 3 cajas vacías en el mostrador, al lado del plato
+            for (let i = 0; i < 3; i++) {
+                const c = hacerCajaPapas(false);
+                c.position.set(0.92, 0.9 + i * 0.045, 0.5); c.rotation.y = i * 0.3;
+                c.children[0].userData = { type: 'FRIES_BOX' }; interactableObjects.push(c.children[0]);
+                foodTruckGroup.add(c);
+            }
+        }
+
+        // Clic en la freidora
+        function usarFreidora() {
+            const f = freidora; if (!f) return;
+            if (f.estado === 'vacia') {
+                if (heldItem && heldItem.type === 'PAPAS_CRUDAS') {
+                    heldItem = null; updateHeld3DMesh(); updateHoldingUI();
+                    f.estado = 'friendo'; f.t = 0; f.mat.color.copy(COLOR_CRUDA); f.papas.visible = true;
+                    showBannerNotification('🍟 ¡Fsssss! Friendo las papas en el aceite...');
+                } else showBannerNotification('🥔 Trae Papas Crudas de la nevera para freírlas.');
+            } else if (f.estado === 'friendo') {
+                showBannerNotification('⏳ Las papas todavía se están friendo...');
+            } else if (f.estado === 'lista') {
+                if (heldItem) return showBannerNotification('✋ Tienes las manos ocupadas. Suelta lo que tienes primero.');
+                f.estado = 'vacia'; f.papas.visible = false;
+                heldItem = { type: 'PAPAS_FRITAS', label: 'Papas Fritas 🍟' };
+                updateHeld3DMesh(); updateHoldingUI();
+                showBannerNotification('🍟 ¡Papas fritas! Ahora ponlas en una caja roja (al lado del plato).');
+            }
+        }
+        // Clic en las cajas de papas
+        function usarCajaPapas() {
+            if (heldItem && heldItem.type === 'PAPAS_FRITAS') {
+                heldItem = { type: 'PAPAS_CAJA', label: 'Caja de Papas Fritas 🍟' };
+                updateHeld3DMesh(); updateHoldingUI();
+                showBannerNotification('📦 ¡Papas en la caja! Ponlas en el plato para servir.');
+            } else if (heldItem && heldItem.type === 'PAPAS_CRUDAS') showBannerNotification('🥔 ¡Están crudas! Primero fríelas en la freidora.');
+            else showBannerNotification('📦 Cajas para papas. Trae papas fritas de la freidora.');
+        }
+        // Cada cuadro: las papas se van dorando y el aceite burbujea
+        function actualizarFreidora(delta, time) {
+            const f = freidora; if (!f) return;
+            const activa = f.estado === 'friendo';
+            f.burbujas.forEach(b => {
+                b.visible = activa || f.estado === 'lista';
+                if (!b.visible) return;
+                const vel = activa ? 0.012 : 0.004;
+                b.position.y = 0.2 + Math.abs(Math.sin(time * vel + b.userData.f)) * (activa ? 0.025 : 0.008);
+            });
+            if (!activa) return;
+            f.t += delta;
+            f.mat.color.copy(COLOR_CRUDA).lerp(COLOR_FRITA, Math.min(1, f.t / TIEMPO_FREIR));
+            f.papas.position.y = 0.17 + Math.sin(time * 0.02) * 0.004; // se mueven un poquito
+            if (f.t >= TIEMPO_FREIR) { f.estado = 'lista'; showBannerNotification('✨ ¡Papas doradas! Haz clic en la freidora para sacarlas.'); }
         }
 
         function cookPattyOnGrill() {
@@ -2642,6 +2797,21 @@
 
         function placeItemOnPlate() {
             if (!heldItem) return;
+
+            // ✨ NUEVO: reglas de las papas
+            if (heldItem.type === 'PAPAS_CRUDAS') return showBannerNotification('🥔 Las papas están crudas. Primero fríelas en la freidora.');
+            if (heldItem.type === 'PAPAS_FRITAS') return showBannerNotification('🍟 Pon las papas en una caja roja antes de servirlas.');
+            if (burgerStack.some(b => b.type === 'PAPAS_CAJA')) return showBannerNotification('🍟 El plato ya tiene papas. Sírvelas primero.');
+            if (heldItem.type === 'PAPAS_CAJA') {
+                if (burgerStack.length) return showBannerNotification('🍔 El plato tiene una hamburguesa. Sírvela primero y luego pon las papas.');
+                const caja = hacerCajaPapas(true); caja.scale.setScalar(1.3); caja.position.y = 0.03;
+                plateGroup.add(caja);
+                burgerStack.push({ type: 'PAPAS_CAJA', height: 0.2 });
+                updateRecipeHUD();
+                heldItem = null; updateHeld3DMesh(); updateHoldingUI();
+                showBannerNotification('🍟 ¡Papas Fritas listas para servir!');
+                return;
+            }
 
             const stackHeight = burgerStack.reduce((acc, curr) => acc + curr.height, 0);
 
@@ -2740,6 +2910,13 @@
                     else labelText = "Plancha de Cocción 🔥";
                 } else if (data.type === 'PLATE') {
                     labelText = heldItem ? `Colocar ${heldItem.label} en el plato 🍽️` : "Plato de Hamburguesa 🍽️";
+                } else if (data.type === 'FRYER') { // ✨ NUEVO
+                    const f = freidora;
+                    if (f.estado === 'friendo') labelText = 'Friendo papas... ⏳';
+                    else if (f.estado === 'lista') labelText = heldItem ? 'Papas listas (suelta lo que tienes) 🍟' : 'Sacar las papas fritas 🍟';
+                    else labelText = heldItem && heldItem.type === 'PAPAS_CRUDAS' ? 'Freír las papas 🍟' : 'Freidora con aceite 🛢️';
+                } else if (data.type === 'FRIES_BOX') { // ✨ NUEVO
+                    labelText = heldItem && heldItem.type === 'PAPAS_FRITAS' ? 'Poner las papas en la caja 📦' : 'Cajas para papas 📦';
                 }
 
                 prompt.innerText = labelText;
@@ -2770,7 +2947,7 @@
                 camera.rotation.set(0, -Math.PI / 2, 0); // Facing service hatch counter
 
                 // Show Food Truck notification banner
-                showBannerNotification("🍔 ¡Bienvenido! Abre la nevera para tomar carne, queso, tomate y lechuga.");
+                showBannerNotification("🍔 ¡Bienvenido! Abre la nevera para tomar carne, queso, tomate, lechuga y papas.");
 
                 // Fade back in
                 setTimeout(() => {
@@ -3011,6 +3188,7 @@
             updateDelivery(delta, time);
             updateTycoon(delta);
             updateTruckDoor(delta);
+            actualizarFreidora(delta, time); // ✨ NUEVO: papas dorándose
             // ✨ animaciones nuevas
             if (fridgeDoorGroup) fridgeDoorGroup.rotation.y += (fridgeTarget - fridgeDoorGroup.rotation.y) * Math.min(1, delta * 7);
             updateHand(delta);

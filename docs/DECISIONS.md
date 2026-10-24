@@ -215,3 +215,10 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - Ahora hay **vistas con nombre** (freidora, nevera, plato, plaza, cuarto, manejar…) y **pruebas de juego** (hamburguesa, papas, combo, reglas del plato) en un solo archivo. Varias vistas salen en **una sola imagen**.
 - La herramienta pone el truck en la plaza antes de entrar (con `teleportToFoodTruck` solo, el truck se queda donde empieza el manejo).
 - En la prueba de papas se adelanta el reloj de la freidora, porque sin tarjeta de video hay muy pocos cuadros por segundo.
+
+## 2026-10-23: Mapa del código (`docs/MAPA.md`)
+
+- `index.html` tiene unas 3.300 líneas, y cada cambio empezaba buscando y leyendo pedazos. El mapa dice qué función hace qué y dónde está cada área en el mundo.
+- Va en un archivo aparte, no en `CLAUDE.md`, porque `CLAUDE.md` se lee completo al empezar cada sesión, aunque no se toque el código.
+- Usa nombres de funciones y comentarios («landmarks»), no números de línea, que cambian con cada edición.
+- `tools/revisar_mapa.py` falla si el mapa nombra algo que ya no existe o si falta una función nueva. GitHub lo corre en cada pull request.

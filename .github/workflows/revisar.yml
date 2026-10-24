@@ -1,11 +1,11 @@
-# Revisa en cada pull request que los scripts de Blender usen source/blender/lib_blender.py
-name: Revisar scripts de Blender
+# Revisa en cada pull request: los scripts de Blender usan lib_blender.py, y docs/MAPA.md sigue al día con index.html
+name: Revisar
 on:
   pull_request:
-    paths: ['source/blender/**', 'tools/revisar_blender.py']
+    paths: ['source/blender/**', 'index.html', 'docs/MAPA.md', 'tools/revisar_*.py']
   push:
     branches: [main]
-    paths: ['source/blender/**', 'tools/revisar_blender.py']
+    paths: ['source/blender/**', 'index.html', 'docs/MAPA.md', 'tools/revisar_*.py']
 jobs:
   revisar:
     runs-on: ubuntu-latest
@@ -15,3 +15,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: python3 tools/revisar_blender.py
+      - run: python3 tools/revisar_mapa.py

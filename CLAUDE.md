@@ -29,6 +29,13 @@ This is a kid's game (Ignacio). Keep it his.
    - compare the two and list the concrete differences.
 8. **One asset family per change.** Update the status in `docs/ASSET_LIST.md` and record decisions in `docs/DECISIONS.md`.
 
+## Blender scripts
+
+- Every model is built by a script `source/blender/build_<name>.py`. **Start new ones by copying `source/blender/_plantilla.py`.**
+- Shared tools (`box`, `cyl`, `beam`, `prism`, `text`, `mat`, `empty`, `limpiar`, `guardar`, `exportar_para_juego`, `REPO`) live in **`source/blender/lib_blender.py`**. Scripts import them with `from lib_blender import *`. **Never copy them into a build script.** A shape useful for several models goes into `lib_blender.py`.
+- Before committing, run `python3 tools/revisar_blender.py`. GitHub runs it on every pull request (`.github/workflows/revisar.yml`) and it fails if a script redefines a shared tool, exports on its own, or doesn't import the library.
+- Scripts run from the terminal too: `pip install bpy` (Python 3.13), then `python3 source/blender/build_<name>.py`. The export is deterministic, so if you change `lib_blender.py`, re-run all scripts and check that the `.glb` files you didn't mean to change stay byte-identical.
+
 ## Testing
 
 - Serve it locally, because file:// blocks loading models: `python -m http.server 8000` → http://localhost:8000

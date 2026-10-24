@@ -13,6 +13,7 @@ This is a kid's game (Ignacio). Keep it his.
   5. Drive the truck to the yellow zone
   6. Burger shift from 5 PM to 11 PM: customers, deliveries, upgrades, the in-truck computer with its apps
 - Scenes are switched with `currentScene`: `'HOME'`, `'DRIVE'`, `'FOOD_TRUCK'`.
+- **Before editing `index.html`, read `docs/MAPA.md`**: which function does what, and the coordinates of every area. Don't read `index.html` top to bottom; jump to the functions the map names. When you add, rename or delete a function, update the map. `python3 tools/revisar_mapa.py` checks it, and GitHub runs it on every pull request.
 
 ## Rules
 

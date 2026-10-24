@@ -45,7 +45,8 @@ This is a kid's game (Ignacio). Keep it his.
 - `python3 tools/probar.py --prueba todas`: gameplay tests (burger, fries, combo, plate rules).
 - Options: `--hora 21`, `--js "<code run before each photo>"`, `--ancho 420` (smaller = faster and fewer tokens), `--referencia` (copies each photo to `reference/screenshots/<view>_<date>.png` for rule 7), `--interfaz` (keep the HUD).
 - Exit code 1 means a console error, a model that failed, or a failed test.
-- **New area or prop?** Add a view to `VISTAS` in `tools/probar.py`. **New mechanic?** Add a test to `PRUEBAS`.
+- **One-off angle:** `--ojo x,y,z --mira x,y,z` (add `--en truck` for truck measurements, `--escena casa` for the house). No need to edit the tool.
+- Views are aimed at *places*, so a new model in the same spot needs no change. Add a view to `VISTAS` only for an area you'll photograph again and again. **New mechanic?** Add a test to `PRUEBAS`.
 - Without internet for the CDNs, it downloads Three.js r128 into `tools/.vendor/` with npm. In the cloud there's no graphics card, so rendering is slow (about 15 s per view); it's much faster on a normal computer.
 - Setup: `pip install playwright pillow`, then `python3 -m playwright install chromium`.
 - Still play the whole loop by hand once in a real browser before a big merge: tutorial → missions → drive → serve one customer.

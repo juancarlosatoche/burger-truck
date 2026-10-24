@@ -179,3 +179,10 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - **Problem:** after merging, the windshield looked like a cream wall from the driver's seat. The browser was still using an **old copy of `food_truck.glb`** (from before the cab windows were opened) with the new code.
 - **Fix:** every model is now loaded with `VERSION_MODELOS` (for example `food_truck.glb?v=2026-10-23c`), so browsers fetch the model that matches the code. **Rule (also in `CLAUDE.md`): when any `.glb` changes, update `VERSION_MODELOS`.**
 - **Also:** the rear-view mirror and the burger air freshener moved up near the roof. They were covering the yellow parking zone on the right side of the windshield (`reference/screenshots/driving_first_person_2026-10-23_fixed.jpg`).
+
+## 2026-10-23: Papas fritas en el menú (idea de Ignacio)
+
+- Nuevo plato **Papas Fritas** ($8): papas crudas de la nevera (estante alto) → freidora con aceite (4.5 s, se van dorando) → caja roja de papas → plato → cliente.
+- La freidora va entre la plancha y los panes; las cajas, junto al plato. Las dos se dibujan con código, así funcionan con o sin el modelo de Blender.
+- Las papas se sirven solas (no en el mismo plato que una hamburguesa). Un combo hamburguesa + papas puede ser el siguiente paso.
+- Las cajas son rojas con una 🍟, sin logos de marcas reales.

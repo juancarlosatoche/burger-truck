@@ -13,6 +13,9 @@ Ejemplos:
   python3 tools/probar.py plaza --hora 21              la plaza a las 9 PM
   python3 tools/probar.py todas                        todas las vistas en una hoja
   python3 tools/probar.py --prueba papas combo         pruebas de juego (sin fotos)
+  python3 tools/probar.py --ojo 60,3,45 --mira 84,8,52   cualquier ángulo, sin editar este archivo
+  python3 tools/probar.py --ojo 0,1.6,1 --mira -0.9,1,1 --en truck   igual, con medidas del truck
+  python3 tools/probar.py --ojo 2,2.1,0 --mira 4,1,-3 --escena casa  igual, en la casa
   python3 tools/probar.py freidora --js "freidora.estado='lista'"   correr código antes de la foto
   python3 tools/probar.py freidora --referencia        además guarda la foto en reference/screenshots/
 
@@ -206,15 +209,37 @@ def main():
     ap.add_argument('vistas', nargs='*', help='nombres de vistas (o "todas")')
     ap.add_argument('--lista', action='store_true', help='muestra las vistas y pruebas que hay')
     ap.add_argument('--prueba', nargs='+', default=[], help='pruebas de juego (o "todas")')
+    # ✨ Cámara libre: un ángulo cualquiera sin agregar una vista a VISTAS (sale con el nombre "libre")
+    ap.add_argument('--ojo', help='posición de la cámara "x,y,z"')
+    ap.add_argument('--mira', help='punto al que mira la cámara "x,y,z" (hace falta con --ojo)')
+    ap.add_argument('--en', choices=['mundo', 'truck'], default='mundo', help='medidas de --ojo y --mira: del mundo (por defecto) o del truck')
+    ap.add_argument('--escena', choices=['truck', 'casa', 'manejar'], default='truck', help='escena para la cámara libre (por defecto truck, que incluye la plaza)')
     ap.add_argument('--hora', type=float, help='hora para todas las vistas (17 a 23 en el truck)')
     ap.add_argument('--js', help='código JavaScript que corre antes de cada foto')
     ap.add_argument('--ancho', type=int, default=640, help='ancho de cada foto (más chica = más rápida y gasta menos)')
     ap.add_argument('--interfaz', action='store_true', help='dejar visibles los letreros y botones del juego')
     ap.add_argument('--referencia', action='store_true', help='copiar cada foto a reference/screenshots/<vista>_<fecha>.png')
-    a = ap.parse_args()
+    # Para que "--ojo -0.4,1.3,1.3" funcione (argparse cree que "-0.4,..." es otra opción), se pega como "--ojo=-0.4,..."
+    argv, i = [], 0
+    while i < len(sys.argv[1:]):
+        x = sys.argv[1 + i]
+        if x in ('--ojo', '--mira') and i + 1 < len(sys.argv[1:]):
+            argv.append(x + '=' + sys.argv[2 + i]); i += 2
+        else:
+            argv.append(x); i += 1
+    a = ap.parse_args(argv)
 
+    if a.ojo or a.mira:
+        try:
+            ojo, mira = [tuple(float(x) for x in t.split(',')) for t in (a.ojo, a.mira)]
+            assert len(ojo) == 3 and len(mira) == 3
+        except (AttributeError, ValueError, AssertionError):
+            sys.exit('Usa --ojo x,y,z y --mira x,y,z juntos, con 3 números cada uno (ej: --ojo 60,3,45 --mira 84,8,52).')
+        VISTAS['libre'] = dict(escena=a.escena, en=a.en, ojo=ojo, mira=mira, que='cámara libre')
+        a.vistas.append('libre')
     if a.lista or (not a.vistas and not a.prueba):
         print('VISTAS:'); [print('  %-13s %s' % (k, v['que'])) for k, v in VISTAS.items()]
+        print('  (o una cámara libre: --ojo x,y,z --mira x,y,z [--en truck] [--escena casa])')
         print('PRUEBAS:'); [print('  %-13s %s' % (k, v[0])) for k, v in PRUEBAS.items()]
         return
     vistas = list(VISTAS) if 'todas' in a.vistas else a.vistas

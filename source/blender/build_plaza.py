@@ -70,14 +70,6 @@ def P(x, z):
     """Del juego (x, z) a Blender (X, Y): Y = -z."""
     return x, -z
 
-def ico(name, center, r, m, parent, sub=1, sz=1.0):
-    """Esfera facetada (low-poly) para copas de árbol y arbustos; sz la aplasta o estira en altura."""
-    bm = bmesh.new()
-    bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=r)
-    bmesh.ops.scale(bm, vec=(1, 1, sz), verts=bm.verts)
-    bmesh.ops.translate(bm, vec=center, verts=bm.verts)
-    return from_bm(name, bm, m, parent)
-
 # =====================================================================
 # Mesas con sombrilla (mismo lugar que las del código) y sillas con respaldo
 # =====================================================================

@@ -157,11 +157,15 @@ def ir_a(pg, escena, estado):
         return
     if escena == 'truck':
         pg.evaluate("""() => { foodTruckGroup.position.set(50, 0, 50); foodTruckGroup.rotation.y = 0; teleportToFoodTruck(true); }""")
+        # ✨ NUEVO: espera a que el juego de verdad cambie de escena (sin tarjeta gráfica los cuadros son lentos
+        # y el "teletransporte" puede llegar tarde y mover la cámara después de ponerla)
+        pg.wait_for_function("() => currentScene === 'FOOD_TRUCK'", timeout=180000)
         time.sleep(2.5)
     elif escena == 'casa':
         pg.evaluate("""() => { currentScene = 'HOME'; setSceneLights('HOME'); }""")
     elif escena == 'manejar':
         pg.evaluate("startDriving(true)")
+        pg.wait_for_function("() => currentScene === 'DRIVE'", timeout=180000)  # ✨ NUEVO: igual que arriba
         time.sleep(4)
     pg.evaluate("""() => { document.getElementById('mobile-controls').classList.add('hidden'); fallbackMode = false; renderer.setPixelRatio(1); }""")
     estado['escena'] = escena

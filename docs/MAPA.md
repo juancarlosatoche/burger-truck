@@ -13,6 +13,7 @@
 | Truck kitchen (truck measurements) | fridge `(-0.95, 1.0, -2.1)`, grill `(-0.95, 0.94, 0.2)`, fryer `(-0.95, 0.9, 1.08)`, plate `(0.9, 0.9, 0)`, computer `(0.93, 1.16, 0.85)`, fries boxes `(0.92, 0.9, 0.5)` | Eye height inside `TRUCK_EYE` = 2.6 (world) |
 | Plaza (world) | customers queue at `x≈54, z≈50`; tables `x=59`; trees `x 63–70`; buildings `x 82–85, z 30–73`; street behind `z≈78` | Plaza models are not scaled: 1 Blender metre = 1 game unit |
 | Drive start | truck at `(14, 0, 24)`, target zone at `(50, 50)` | `drive` object holds speed and heading |
+| Forest and dirt road | dirt road from `(2, 21)` east, then south along `x≈36`, ending on the paved yard behind the plaza (`pave2`, `x 37–73, z 56–74`) at `(44, 67)`; pond `(18, 41)`; mushroom clearing `(24, 61)` | Blender model `bosque.glb`. No trees on the road, the plaza block `x 42–100, z 26–88` or the house `x −16–18, z −16–20` |
 
 Scenes: `currentScene` is `'HOME'`, `'DRIVE'` or `'FOOD_TRUCK'`. `setSceneLights()` switches lights; `setTimeOfDay()` sets sky and lamps from the hour.
 
@@ -61,7 +62,7 @@ Scenes: `currentScene` is `'HOME'`, `'DRIVE'` or `'FOOD_TRUCK'`. `setSceneLights
 
 ### Blender models (each one hides its code-drawn version when it loads)
 - Entry point `cargarModelos()`; version string `VERSION_MODELOS` (**bump it when a `.glb` changes**). Helper `piezaDeModelo()`.
-- `cargarModeloTruck()`, `cargarModeloCabina()`, `cargarModeloCocina()`, `cargarModeloPlaza()`, `cargarModeloEdificios()`, `cargarModeloDormitorio()`, `cargarModeloCocinaCasa()`, `cargarModeloFreidora()`, `cargarModeloPapasCrudas()` (+ `vestirPapasCrudas()`).
+- `cargarModeloTruck()`, `cargarModeloCabina()`, `cargarModeloCocina()`, `cargarModeloPlaza()`, `cargarModeloEdificios()`, `cargarModeloBosque()` (forest and dirt road, drawn as instanced copies by 100 m zones), `cargarModeloDormitorio()`, `cargarModeloCocinaCasa()`, `cargarModeloFreidora()`, `cargarModeloPapasCrudas()` (+ `vestirPapasCrudas()`).
 
 ### Look: light, sky, glow
 - Sky and stars: `buildSky()`. Hour → colours and lamps: `setTimeOfDay()`, table `TOD`. Lamps that glow at dusk are registered in `lampMats` / `lampLights`.

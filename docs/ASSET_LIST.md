@@ -48,7 +48,8 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Trees (3–4 varieties, not copy-paste) | P2 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): 2 oaks, 2 pines, 1 birch, 1 big bush |
 | Planters, trash bin | P3 | ✅ `assets/models/environment/plaza.glb` (`source/blender/build_plaza.py`): planters with flowers |
 | Background buildings with lit windows | P3 | ✅ in game via `assets/models/environment/edificios.glb` (`source/blender/build_edificios.py`, 413 KB, ~7.4k triangles). Reference: `reference/environment/edificios_plaza.jpg` (Ignacio). 5 different buildings; windows with material `luz_ventana` light up at dusk. Code boxes stay as fallback |
-| Road, sidewalk, grass textures | P2 | ⬜ |
+| Road, sidewalk, grass textures | P2 | 🟡 dirt road from `bosque.glb` (start of the drive → paved yard behind the plaza); lawn recoloured to a fresher green in code; street and sidewalk textures still code |
+| Forest along the drive (house → plaza): ~10 tree types, bushes, ferns, flowers, mushrooms, rocks, logs, pond with reeds | P2 | ✅ in game via `assets/models/environment/bosque.glb` (`source/blender/build_bosque.py`, ~0.9 MB, ~1,260 plants from 28 models, ~250k triangles drawn). References: `reference/environment/bosque_hoja.png`, `bosque_plano.png`, style target `reference/style-targets/camino_bosque.png`. Drawn as instanced copies; no code fallback (before it was empty lawn) |
 | Yellow parking zone and arrow (driving) | P3 | Can stay in code | ⬜ |
 
 ## House (track 2B)

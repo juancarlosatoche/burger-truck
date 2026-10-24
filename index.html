@@ -602,7 +602,7 @@
         }
         // ✨ NUEVO: versión de los modelos 3D. Si cambias un .glb, cambia este texto: así el navegador baja el modelo
         // nuevo en vez de usar una copia vieja guardada (si no, se mezclan código nuevo con modelos viejos).
-        const VERSION_MODELOS = '?v=2026-10-23d';
+        const VERSION_MODELOS = '?v=2026-10-23e';
         // ✨ NUEVO: modelos 3D de los clientes (hechos con Tripo). Si no cargan, se usa la persona dibujada con código.
         const ARCHIVOS_CLIENTES = ['customer_a.glb', 'customer_b.glb', 'customer_c.glb']; // A: sudadera verde, B: chaqueta azul, C: suéter rosa
         const modelosClientes = [null, null, null]; // aquí se guardan cuando terminan de cargar
@@ -856,7 +856,7 @@
             const add = (m, x, y, z) => { m.position.set(x, y, z); scene.add(m); return m; };
             const mat = (col, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.8 }, o));
             // Pasto y pavimento
-            const gt = makeTex('#2c5233', (c, n) => blots(c, 500, n, () => `hsla(${95 + rr_(0, 40)},45%,${18 + rr_(0, 16)}%,0.6)`, 2, 6), 60, 60);
+            const gt = makeTex('#3f7536', (c, n) => blots(c, 500, n, () => `hsla(${88 + rr_(0, 34)},48%,${24 + rr_(0, 16)}%,0.6)`, 2, 6), 60, 60); // ✨ NUEVO: pasto más verde y fresco, como la imagen del camino del bosque
             const lawn = add(new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: gt, roughness: 1 })), 50, -0.02, 50);
             lawn.rotation.x = -Math.PI / 2; lawn.receiveShadow = true;
             const pt = makeTex('#6b6f73', (c, n) => { c.strokeStyle = '#4b4f53'; c.lineWidth = 3; for (let i = 0; i <= n; i += 64) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, n); c.stroke(); c.beginPath(); c.moveTo(0, i); c.lineTo(n, i); c.stroke(); } speckle(c, 1500, n, '0,0,0', 0.15); }, 10, 8);
@@ -959,6 +959,50 @@
             exit_.rotation.y = Math.PI;
             cargarModeloPlaza(); // ✨ NUEVO: mesas, guirnaldas, árboles y faroles hechos en Blender
             cargarModeloEdificios(); // ✨ NUEVO: 5 edificios distintos hechos en Blender
+            cargarModeloBosque(); // ✨ NUEVO: bosque y camino de tierra entre la casa y la plaza
+        }
+
+        // ✨ NUEVO: bosque del camino (source/blender/build_bosque.py): ~1000 árboles y plantas, pero solo 28 modelos.
+        // Las copias iguales se dibujan juntas (InstancedMesh) y por zonas de 100 m, así no se dibujan las zonas que no ves.
+        // Si no carga, el camino se queda como antes: pasto.
+        function cargarModeloBosque() {
+            if (!THREE.GLTFLoader || location.protocol === 'file:') return;
+            new THREE.GLTFLoader().load('assets/models/environment/bosque.glb' + VERSION_MODELOS, (gltf) => {
+                const raiz = gltf.scene;
+                if (!raiz.getObjectByName('bosque')) return; // archivo raro: mejor no tocar nada
+                raiz.updateMatrixWorld(true);
+                const grupos = new Map(); // misma forma + mismo material + misma zona = un solo grupo
+                raiz.traverse(o => {
+                    if (!o.isMesh) return;
+                    const p = o.matrixWorld.elements, zona = Math.floor((p[12] + 62) / 100) + ',' + Math.floor((p[14] + 30) / 100);
+                    const clave = o.geometry.uuid + '|' + o.material.uuid + '|' + zona;
+                    if (!grupos.has(clave)) grupos.set(clave, []);
+                    grupos.get(clave).push(o);
+                });
+                const bosque = new THREE.Group(), tono = new THREE.Color(), caja = new THREE.Box3(), cajita = new THREE.Box3();
+                bosque.name = 'bosque';
+                const PLANTAS_BAJAS = /(^| )(flores|pasto|helechos|hongos|cardos)/; // muy chiquitas: no hace falta que den sombra
+                grupos.forEach(lista => {
+                    const forma = lista[0].geometry.clone(), material = lista[0].material;
+                    if (!forma.boundingSphere) forma.computeBoundingSphere();
+                    const copias = new THREE.InstancedMesh(forma, material, lista.length);
+                    caja.makeEmpty();
+                    lista.forEach((o, i) => {
+                        copias.setMatrixAt(i, o.matrixWorld);
+                        if (material.name === 'planta') { // cada árbol y planta con un tono un poquito distinto
+                            const t = 0.86 + ((i * 37 + lista.length * 11) % 29) / 100;
+                            copias.setColorAt(i, tono.setRGB(t, t * (0.98 + (i % 5) * 0.01), t));
+                        }
+                        caja.union(forma.boundingSphere.clone().applyMatrix4(o.matrixWorld).getBoundingBox(cajita));
+                    });
+                    forma.boundingSphere = caja.getBoundingSphere(new THREE.Sphere()); // la esfera que envuelve TODAS las copias
+                    const nombre = lista[0].name + ' ' + ((lista[0].parent && lista[0].parent.name) || ''); // la copia o su papá dicen qué planta es
+                    copias.castShadow = !PLANTAS_BAJAS.test(nombre) && !/(^| )(camino|laguna)/.test(nombre);
+                    copias.receiveShadow = true;
+                    bosque.add(copias);
+                });
+                scene.add(bosque);
+            }, undefined, () => { }); // si falla, no pasa nada: se queda el pasto de antes
         }
 
         // ✨ NUEVO: plaza hecha en Blender (source/blender/build_plaza.py). Si no carga, se queda la dibujada con código.

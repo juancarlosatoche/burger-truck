@@ -1,0 +1,17 @@
+# Revisa en cada pull request que los scripts de Blender usen source/blender/lib_blender.py
+name: Revisar scripts de Blender
+on:
+  pull_request:
+    paths: ['source/blender/**', 'tools/revisar_blender.py']
+  push:
+    branches: [main]
+    paths: ['source/blender/**', 'tools/revisar_blender.py']
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/revisar_blender.py

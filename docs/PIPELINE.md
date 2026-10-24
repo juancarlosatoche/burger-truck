@@ -77,6 +77,9 @@ The three tracks don't depend on each other, so run them at the same time.
    - Chong-U's note: "stop having repetitive things."
 3. **Export** to `.glb`. Bake simple textures. Keep each prop under 1 MB.
 
+
+**Blender scripts:** start from `source/blender/_plantilla.py`; shared tools live in `source/blender/lib_blender.py` (see `CLAUDE.md`).
+
 **Priority order** (most visible first):
 
 1. Food truck exterior and interior

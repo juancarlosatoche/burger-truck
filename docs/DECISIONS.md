@@ -201,3 +201,10 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - **Papas crudas:** bandeja de acero con palitos pálidos, en la nevera y en la mano. Las del código siguen recibiendo el clic (son invisibles).
 - **Edificios:** 5 distintos (ladrillo con tanque, torre azul, tiendas con toldos, crema con balcones, esquina redonda), en los mismos lugares que las cajas de antes. No dan ni reciben sombras: están lejos, y así se ven más limpios y el juego va más rápido.
 - Los tres modelos se cargan aparte. Si alguno falla, se queda el dibujado con código.
+
+## 2026-10-23: Herramientas de Blender compartidas
+
+- Los 8 scripts `build_*.py` tenían copias idénticas de las mismas 12 funciones (unas 147 líneas cada uno). Ahora viven en `source/blender/lib_blender.py` y cada script las importa.
+- **Por qué:** los scripts nuevos son mucho más cortos, y escribirlos gasta menos tokens. Un arreglo en `lib_blender.py` sirve para todos los modelos.
+- **Comprobado:** los 9 `.glb` salen byte por byte iguales antes y después del cambio.
+- **Cómo se garantiza:** `_plantilla.py` es el punto de partida de los scripts nuevos; `tools/revisar_blender.py` falla si un script no importa la librería, redefine una herramienta o exporta por su cuenta; GitHub lo corre en cada pull request; y `CLAUDE.md` tiene la regla para cualquier sesión de IA.

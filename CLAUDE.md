@@ -38,9 +38,17 @@ This is a kid's game (Ignacio). Keep it his.
 
 ## Testing
 
-- Serve it locally, because file:// blocks loading models: `python -m http.server 8000` → http://localhost:8000
-- Check the browser console for errors.
-- Play the whole loop at least once: tutorial → missions → drive → serve one customer.
+**Use `tools/probar.py`. Don't write a new test or screenshot script.** It serves the game, opens it in a headless browser, and reports console errors and models that failed to load.
+
+- `python3 tools/probar.py --lista`: the named camera views and gameplay tests.
+- `python3 tools/probar.py freidora plato`: photos from named views, combined into **one** image, `tools/capturas/hoja.png`. Look at that one image, not each photo.
+- `python3 tools/probar.py --prueba todas`: gameplay tests (burger, fries, combo, plate rules).
+- Options: `--hora 21`, `--js "<code run before each photo>"`, `--ancho 420` (smaller = faster and fewer tokens), `--referencia` (copies each photo to `reference/screenshots/<view>_<date>.png` for rule 7), `--interfaz` (keep the HUD).
+- Exit code 1 means a console error, a model that failed, or a failed test.
+- **New area or prop?** Add a view to `VISTAS` in `tools/probar.py`. **New mechanic?** Add a test to `PRUEBAS`.
+- Without internet for the CDNs, it downloads Three.js r128 into `tools/.vendor/` with npm. In the cloud there's no graphics card, so rendering is slow (about 15 s per view); it's much faster on a normal computer.
+- Setup: `pip install playwright pillow`, then `python3 -m playwright install chromium`.
+- Still play the whole loop by hand once in a real browser before a big merge: tutorial → missions → drive → serve one customer.
 
 ## Where the pipeline is described
 

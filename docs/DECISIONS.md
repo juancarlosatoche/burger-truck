@@ -208,3 +208,10 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - **Por qué:** los scripts nuevos son mucho más cortos, y escribirlos gasta menos tokens. Un arreglo en `lib_blender.py` sirve para todos los modelos.
 - **Comprobado:** los 9 `.glb` salen byte por byte iguales antes y después del cambio.
 - **Cómo se garantiza:** `_plantilla.py` es el punto de partida de los scripts nuevos; `tools/revisar_blender.py` falla si un script no importa la librería, redefine una herramienta o exporta por su cuenta; GitHub lo corre en cada pull request; y `CLAUDE.md` tiene la regla para cualquier sesión de IA.
+
+## 2026-10-23: Herramienta para probar y tomar fotos (`tools/probar.py`)
+
+- Antes, cada cambio escribía su propio script de prueba y lo corregía varias veces, y se tomaban muchas fotos sueltas. Eso gastaba muchos tokens.
+- Ahora hay **vistas con nombre** (freidora, nevera, plato, plaza, cuarto, manejar…) y **pruebas de juego** (hamburguesa, papas, combo, reglas del plato) en un solo archivo. Varias vistas salen en **una sola imagen**.
+- La herramienta pone el truck en la plaza antes de entrar (con `teleportToFoodTruck` solo, el truck se queda donde empieza el manejo).
+- En la prueba de papas se adelanta el reloj de la freidora, porque sin tarjeta de video hay muy pocos cuadros por segundo.

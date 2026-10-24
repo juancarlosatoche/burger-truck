@@ -20,3 +20,5 @@ dist/
 .env.*
 *secret*
 *apikey*
+tools/.vendor/
+tools/capturas/

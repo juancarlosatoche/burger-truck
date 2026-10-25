@@ -16,7 +16,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 |---|---|---|---|---|
 | Customers A, B, C (green hoodie, blue jacket, pink sweater) | Truck window queue | P1 | idle, walk, impatient, happy_jump, angry_stomp, wave | ✅ in game **without skeleton** (`assets/models/characters/customer_a\|b\|c.glb`, 1.1–1.3 MB each, ~25k triangles). Move with the old code animations (bounce, sway, jump, turn red). Need Blender rig; B has dark smudges on chin/neck from Tripo |
 | Delivery driver | Behind the truck | P2 | walk, idle, carry (crate in `hand_R`) | 🖼️ `reference/turnarounds/delivery_driver` |
-| Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) || 🖼️ `reference/turnarounds/player_hands.png` |
+| Player hands (first person) | Holding ingredients; both hands on the steering wheel while driving (see `driving_first_person.jpg`) | P1 | grab, hold (socket `hand_R`), steer (both hands) | ✅ in game via `assets/models/characters/manos.glb` (`source/blender/build_manos.py`, 91 KB, ~1.6k triangles). Faceted low-poly hands with knuckles and nails, blue sleeves, from `reference/turnarounds/player_hands.png`. Two poses, no skeleton: `mano_sostener` (palm up, carries items on the code socket) and `manos_volante` (both fists on the wheel, only while driving). Code hand stays as fallback |
 | Friend (phone avatar, 2D) | Phone message | P3 | (image only) | ⬜ |
 
 ## Food truck (track 2B)
@@ -33,7 +33,7 @@ This list is taken from `index.html` v5, and covers everything the game currentl
 | Cash register, soda machine, ketchup, mustard | P2 | | ✅ in game via `truck_interior.glb` (`source/blender/build_truck_interior.py`) (plus shelves, jars, utensils, napkins, cups, order tickets) |
 | Deep fryer with wire basket (new: fries) | P1 | Reference: `reference/props/freidora_*.jpg` (Ignacio). Basket as a separate piece so it can move | ✅ in game via `freidora.glb` (`source/blender/build_freidora_papas.py`, 83 KB): `freidora_cuerpo`, `freidora_aceite`, `freidora_canasta` (code lowers it into the oil while frying); clicks stay on the code shapes |
 | Raw fries tray in the fridge (new: fries) | P1 | Reference: `reference/props/papas_crudas.jpg` (Ignacio) | ✅ in game via `papas_crudas.glb` (`source/blender/build_freidora_papas.py`, 59 KB): also shown in the hand |
-| Fries box and cooked fries | P1 | Red box with 🍟, no real brand logos | 🟡 drawn in code |
+| Fries box and cooked fries | P1 | Red box with 🍟, no real brand logos | ✅ in game via `papas_fritas.glb` (`source/blender/build_papas_fritas.py`, ~700 KB, ~12k triangles): `caja_papas` (red box, curved front, yellow stripe and a little fries drawing), `papas_caja`, `papas_sueltas` (in the hand), `papas_canasta` (in the fryer basket, tinted from pale to golden while frying). Chunky bevelled fries with toasted tips, three shades of gold. Code boxes stay clickable and as fallback |
 | Computer (monitor + keyboard) | P2 | Screen stays a canvas texture drawn in code | ⬜ |
 | Rear door with window, EXIT sign, wall clock | P2 | Clock face stays drawn in code (it shows game time) | ⬜ |
 

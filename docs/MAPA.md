@@ -26,7 +26,7 @@ Scenes: `currentScene` is `'HOME'`, `'DRIVE'` or `'FOOD_TRUCK'`. `setSceneLights
 - **Food textures:** `foodMat()`.
 - **Putting things on the plate:** `placeItemOnPlate()`. **Holding things:** `pickUpItem()`, `updateHeld3DMesh()`, `dropHeldItem()`, `updateHoldingUI()`.
 - **Grill:** `cookPattyOnGrill()`, `pickUpCookedPatty()`.
-- **Fries:** `construirFreidora()`, `usarFreidora()`, `actualizarFreidora()` (timer `TIEMPO_FREIR`), `construirCajasPapas()`, `usarCajaPapas()`, `hacerCajaPapas()`, `hacerPalitos()`.
+- **Fries:** `construirFreidora()`, `usarFreidora()`, `actualizarFreidora()` (timer `TIEMPO_FREIR`), colour raw → golden `pintarPapasFreidora()`, `construirCajasPapas()`, `usarCajaPapas()`, `hacerCajaPapas()`, `hacerPalitos()`.
 
 ### Clicking and the cross-hair prompt
 - **What a click does in the truck:** `handleWorldInteraction()` (by `userData.type`: 'FRIDGE_DOOR', 'INGREDIENT', 'GRILL', 'FRYER', 'FRIES_BOX', 'PLATE', 'CLIENT', 'DELIVERY', 'COMPUTER').
@@ -62,12 +62,12 @@ Scenes: `currentScene` is `'HOME'`, `'DRIVE'` or `'FOOD_TRUCK'`. `setSceneLights
 
 ### Blender models (each one hides its code-drawn version when it loads)
 - Entry point `cargarModelos()`; version string `VERSION_MODELOS` (**bump it when a `.glb` changes**). Helper `piezaDeModelo()`.
-- `cargarModeloTruck()`, `cargarModeloCabina()`, `cargarModeloCocina()`, `cargarModeloPlaza()`, `cargarModeloEdificios()`, `cargarModeloBosque()` (forest and dirt road, drawn as instanced copies by 100 m zones), `cargarModeloDormitorio()`, `cargarModeloCocinaCasa()`, `cargarModeloFreidora()`, `cargarModeloPapasCrudas()` (+ `vestirPapasCrudas()`).
+- `cargarModeloTruck()`, `cargarModeloCabina()`, `cargarModeloCocina()`, `cargarModeloPlaza()`, `cargarModeloEdificios()`, `cargarModeloBosque()` (forest and dirt road, drawn as instanced copies by 100 m zones), `cargarModeloDormitorio()`, `cargarModeloCocinaCasa()`, `cargarModeloFreidora()`, `cargarModeloPapasCrudas()` (+ `vestirPapasCrudas()`), `cargarModeloPapasFritas()` (+ `vestirCajaPapas()`: fries box, fries in the box, in the hand and in the fryer basket), `cargarModeloManos()` (+ `ponerManosVolante()`: player hands for cooking and on the steering wheel).
 
 ### Look: light, sky, glow
 - Sky and stars: `buildSky()`. Hour → colours and lamps: `setTimeOfDay()`, table `TOD`. Lamps that glow at dusk are registered in `lampMats` / `lampLights`.
 - Bloom and colour grading: `setupPost()`. Reflections: `buildEnvMap()`, `shiny()`.
-- First-person hand: `buildHand()`, `updateHand()`.
+- First-person hand: `buildHand()`, `updateHand()`. Blender hands: `cargarModeloManos()`; the wheel hands turn `GIRO_MANOS` (35%) as much as the wheel.
 
 ### Startup, controls, main loop
 - `init()` builds everything and sets up the controls (landmarks «Joystick virtual», «Mirar arrastrando»). Main loop: `animate()`. Window size: `onWindowResize()`.

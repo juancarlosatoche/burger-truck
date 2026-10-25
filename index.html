@@ -602,7 +602,7 @@
         }
         // ✨ NUEVO: versión de los modelos 3D. Si cambias un .glb, cambia este texto: así el navegador baja el modelo
         // nuevo en vez de usar una copia vieja guardada (si no, se mezclan código nuevo con modelos viejos).
-        const VERSION_MODELOS = '?v=2026-10-23e';
+        const VERSION_MODELOS = '?v=2026-10-24b';
         // ✨ NUEVO: modelos 3D de los clientes (hechos con Tripo). Si no cargan, se usa la persona dibujada con código.
         const ARCHIVOS_CLIENTES = ['customer_a.glb', 'customer_b.glb', 'customer_c.glb']; // A: sudadera verde, B: chaqueta azul, C: suéter rosa
         const modelosClientes = [null, null, null]; // aquí se guardan cuando terminan de cargar
@@ -616,6 +616,8 @@
             cargarModeloCabina(); // ✨ NUEVO: cabina con volante para manejar en primera persona
             cargarModeloFreidora(); // ✨ NUEVO: freidora de Blender con canasta que sube y baja
             cargarModeloPapasCrudas(); // ✨ NUEVO: bandeja de papas crudas de Blender (en la nevera)
+            cargarModeloPapasFritas(); // ✨ NUEVO: papas fritas y caja roja de Blender
+            cargarModeloManos(); // ✨ NUEVO: manos del jugador de Blender (cocinar y manejar)
             ARCHIVOS_CLIENTES.forEach((archivo, i) => {
                 cargador.load('assets/models/characters/' + archivo + VERSION_MODELOS, (gltf) => {
                     modelosClientes[i] = gltf.scene;
@@ -1182,6 +1184,7 @@
                     volanteGiro = new THREE.Group();         // este es el que gira cuando doblas
                     volante.position.set(0, 0, 0);
                     volanteGiro.add(volante); inclinado.add(volanteGiro); foodTruckGroup.add(inclinado);
+                    ponerManosVolante(); // ✨ NUEVO: si ya cargaron las manos, van al volante
                 }
                 cabinaLista = true;
             }, undefined, () => { }); // si falla, se maneja con la cámara de atrás
@@ -1538,6 +1541,39 @@
             handGroup.position.set(0.26 + Math.cos(bobT * 0.5) * 0.012 * bobAmt, -0.27 - e * 0.25 + Math.abs(Math.sin(bobT * 0.5)) * 0.012 * bobAmt, -0.45);
             handGroup.rotation.z = 0.05 + e * 0.5;
             if (heldItemMesh) heldItemMesh.rotation.y += dt * 0.4;
+            if (manosVolante) manosVolante.visible = currentScene === 'DRIVE'; // ✨ NUEVO: las manos en el volante solo cuando manejas
+            if (manosGiro) manosGiro.rotation.z = volanteGiro.rotation.z * GIRO_MANOS; // ✨ NUEVO: siguen al volante (un poco)
+        }
+
+        // ✨ NUEVO: manos de Blender (source/blender/build_manos.py), como reference/turnarounds/player_hands.png:
+        // piel facetada, dedos con nudillos y uñitas, manga azul. Si no cargan, queda la mano del código.
+        let manosVolante = null;
+        function cargarModeloManos() {
+            new THREE.GLTFLoader().load('assets/models/characters/manos.glb' + VERSION_MODELOS, (gltf) => {
+                const raiz = gltf.scene;
+                const sostener = raiz.getObjectByName('mano_sostener'), volante = raiz.getObjectByName('manos_volante');
+                if (!sostener || !volante) return; // archivo raro: se queda la mano del código
+                raiz.updateMatrixWorld(true);
+                // Mano para cocinar: reemplaza a la del código, en el mismo lugar (lo que llevas sigue en handSocket)
+                handGroup.children.forEach(o => { if (o !== handSocket) o.visible = false; });
+                sostener.position.set(0, 0, 0); sostener.scale.set(1, 1, 1); // medidas de verdad (sin la escala del truck)
+                handGroup.add(sostener);
+                // Manos del volante: con la misma escala que el volante, para meterlas dentro de él
+                volante.matrixWorld.decompose(volante.position, volante.quaternion, volante.scale);
+                volante.position.set(0, 0, 0); volante.visible = false;
+                manosVolante = volante;
+                ponerManosVolante();
+            }, undefined, () => { }); // si falla, se queda la mano del código (y se maneja sin manos)
+        }
+        // Las manos van en el volante inclinado (se llama cuando carga la cabina o las manos).
+        // Giran MENOS que el volante (GIRO_MANOS): como el aro es redondo, igual quedan agarrándolo,
+        // y los brazos no se cruzan por toda la pantalla al doblar fuerte.
+        const GIRO_MANOS = 0.35;
+        let manosGiro = null;
+        function ponerManosVolante() {
+            if (!manosVolante || !volanteGiro || manosGiro) return;
+            manosGiro = new THREE.Group(); manosGiro.add(manosVolante);
+            volanteGiro.parent.add(manosGiro);
         }
 
         // ✨ NUEVO: choques reales en la casa (ya no se atraviesan paredes ni muebles)
@@ -2695,8 +2731,10 @@
 
             // ✨ NUEVO: papas fritas sueltas o en su caja
             if (heldItem.type === 'PAPAS_FRITAS' || heldItem.type === 'PAPAS_CAJA') {
-                heldItemMesh = heldItem.type === 'PAPAS_CAJA' ? hacerCajaPapas(true) : hacerPalitos(12, foodMat('PAPAS_FRITAS'), 0.04, 0.04, 0.06);
-                heldItemMesh.scale.setScalar(0.8);
+                heldItemMesh = heldItem.type === 'PAPAS_CAJA' ? hacerCajaPapas(true)
+                    : modeloPapasFritas ? modeloPapasFritas.sueltas.clone() // ✨ NUEVO: montoncito de papas de Blender
+                    : hacerPalitos(12, foodMat('PAPAS_FRITAS'), 0.04, 0.04, 0.06);
+                heldItemMesh.scale.setScalar(!modeloPapasFritas ? 0.8 : heldItem.type === 'PAPAS_FRITAS' ? 1.2 : 1.1); // ✨ con las manos de Blender (más grandes), las papas también
                 handSocket.add(heldItemMesh);
                 handGroup.visible = true;
                 return;
@@ -2759,7 +2797,59 @@
             const caja = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.055, 0.13, 4, 1, false, Math.PI / 4), cajaPapasMat);
             caja.position.y = 0.065; caja.castShadow = true; g.add(caja);
             if (conPapas) { const pp = hacerPalitos(16, foodMat('PAPAS_FRITAS'), 0.035, 0.035, 0.1); pp.position.y = 0.08; g.add(pp); }
+            g.userData.conPapas = conPapas;
+            if (!modeloPapasFritas) cajasPapas.push(g); // ✨ NUEVO: se viste cuando cargue el modelo de Blender
+            vestirCajaPapas(g);                           // (o de una vez, si ya cargó)
             return g;
+        }
+
+        // ✨ NUEVO: papas fritas y caja roja de Blender (source/blender/build_papas_fritas.py).
+        // Papas gorditas con bordes suaves y puntitas tostadas, en vez de palitos que parecían fideos.
+        let modeloPapasFritas = null; // { caja, papasCaja, sueltas, canasta }
+        const cajasPapas = [];        // todas las cajas hechas con código (para vestirlas cuando cargue el modelo)
+        function vestirCajaPapas(g) {
+            if (!modeloPapasFritas || g.userData.vestida) return;
+            const M = modeloPapasFritas;
+            // La caja del código queda invisible pero recibe el clic; los palitos del código se esconden
+            g.children.forEach(o => { if (o.isMesh) o.material = matInvisible; else o.visible = false; });
+            g.add(M.caja.clone());
+            if (g.userData.conPapas) g.add(M.papasCaja.clone());
+            g.userData.vestida = true;
+        }
+        function cargarModeloPapasFritas() {
+            new THREE.GLTFLoader().load('assets/models/props/papas_fritas.glb' + VERSION_MODELOS, (gltf) => {
+                const raiz = gltf.scene, piezas = {};
+                for (const [k, nombre] of [['caja', 'caja_papas'], ['papasCaja', 'papas_caja'], ['sueltas', 'papas_sueltas'], ['canasta', 'papas_canasta']]) {
+                    const p = raiz.getObjectByName(nombre);
+                    if (!p) return; // archivo raro: se quedan las papas del código
+                    p.position.set(0, 0, 0);
+                    p.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                    piezas[k] = p;
+                }
+                modeloPapasFritas = piezas;
+                cajasPapas.forEach(vestirCajaPapas);
+                // Papas de la canasta: con sus propios materiales, para dorarlas mientras se fríen
+                const f = freidora;
+                if (f) {
+                    const c = piezas.canasta.clone();
+                    f.matsModelo = [];
+                    c.traverse(o => {
+                        if (!o.isMesh) return;
+                        o.material = o.material.clone();
+                        f.matsModelo.push({ m: o.material, frita: o.material.color.clone() });
+                    });
+                    f.papas.children.forEach(o => o.visible = false);
+                    f.papas.add(c);
+                    pintarPapasFreidora(f.estado === 'vacia' ? 0 : Math.min(1, f.t / TIEMPO_FREIR));
+                }
+                if (heldItem && (heldItem.type === 'PAPAS_FRITAS' || heldItem.type === 'PAPAS_CAJA')) updateHeld3DMesh();
+            }, undefined, () => { }); // si falla, se quedan las papas dibujadas con código
+        }
+        // ✨ NUEVO: color de las papas en la freidora: k = 0 crudas (pálidas) … 1 fritas (doradas)
+        function pintarPapasFreidora(k) {
+            const f = freidora; if (!f) return;
+            f.mat.color.copy(COLOR_CRUDA).lerp(COLOR_FRITA, k);
+            if (f.matsModelo) f.matsModelo.forEach(x => x.m.color.copy(COLOR_CRUDA).lerp(x.frita, k));
         }
 
         function construirFreidora() {
@@ -2853,7 +2943,7 @@
             if (f.estado === 'vacia') {
                 if (heldItem && heldItem.type === 'PAPAS_CRUDAS') {
                     heldItem = null; updateHeld3DMesh(); updateHoldingUI();
-                    f.estado = 'friendo'; f.t = 0; f.mat.color.copy(COLOR_CRUDA); f.papas.visible = true;
+                    f.estado = 'friendo'; f.t = 0; pintarPapasFreidora(0); f.papas.visible = true; // ✨ pintarPapasFreidora: también las de Blender
                     showBannerNotification('🍟 ¡Fsssss! Friendo las papas en el aceite...');
                 } else showBannerNotification('🥔 Trae Papas Crudas de la nevera para freírlas.');
             } else if (f.estado === 'friendo') {
@@ -2890,7 +2980,7 @@
             if (f.foco) f.foco.emissiveIntensity = activa ? 3 + Math.sin(time * 0.01) : 1.2; // el foquito titila mientras fríe
             if (!activa) return;
             f.t += delta;
-            f.mat.color.copy(COLOR_CRUDA).lerp(COLOR_FRITA, Math.min(1, f.t / TIEMPO_FREIR));
+            pintarPapasFreidora(Math.min(1, f.t / TIEMPO_FREIR)); // ✨ se van dorando (también las de Blender)
             if (!f.canasta) f.papas.position.y = 0.17 + Math.sin(time * 0.02) * 0.004; // se mueven un poquito (sin el modelo)
             if (f.t >= TIEMPO_FREIR) { f.estado = 'lista'; showBannerNotification('✨ ¡Papas doradas! Haz clic en la freidora para sacarlas.'); }
         }

@@ -235,3 +235,17 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - **`tools/probar.py`:** ahora espera a que el juego cambie de escena antes de poner la cámara. Sin tarjeta gráfica los cuadros son lentos, y el teletransporte al truck llegaba tarde y metía la cámara adentro del truck.
 - **Diferencias que quedan con el objetivo de estilo:** el objetivo tiene rayos de sol entre los árboles y más neblina dorada; los árboles del objetivo están un poco más pegados al camino; y la casa no se ve al empezar a manejar (el juego la esconde al salir).
 
+## 2026-10-24: Papas fritas y manos del jugador hechas en Blender (idea de Ignacio)
+
+- **Qué pidió Ignacio:** mejor calidad gráfica en las papas cuando terminan de freírse, y en las manos del jugador al cocinar y al manejar.
+- **Papas (`source/blender/build_papas_fritas.py` → `papas_fritas.glb`):** antes eran palitos delgados con rayas que parecían fideos. Ahora son papas gorditas con bordes biselados, puntitas tostadas, tres tonos de dorado y granitos de sal. El modelo tiene las mismas medidas que el código, así que reemplaza sin mover nada:
+  - en la canasta de la freidora: el código las pinta de pálidas a doradas mientras se fríen (`pintarPapasFreidora()`), igual que antes;
+  - en la mano: un montoncito de papas (`papas_sueltas`);
+  - la caja roja: más ancha arriba, con el frente curvo, franja amarilla y un dibujito de papas (sin marcas de verdad), y las papas asomándose por arriba. Las cajas del código siguen recibiendo el clic (son invisibles).
+- **Manos (`source/blender/build_manos.py` → `manos.glb`):** siguen `reference/turnarounds/player_hands.png`: piel facetada, nudillos, uñitas y manga **azul** (como la referencia; la mano del código tenía manga roja). No tienen esqueleto: son dos poses fijas.
+  - `mano_sostener`: palma arriba, dedos un poco doblados; lo que llevas se apoya en la palma (mismo socket que antes). Es más grande que una mano real (×1.5), como en los dibujos animados; por eso las papas en la mano también se ven un poco más grandes.
+  - `manos_volante`: las dos manos agarrando el aro a las "10 y 10", con el dorso hacia afuera y los pulgares sobre el aro. Solo se ven mientras manejas (si no, habría manos flotando en el truck estacionado).
+  - Al doblar, las manos giran el **35 %** de lo que gira el volante (`GIRO_MANOS`). Como el aro es redondo, siguen agarrándolo; si giraran todo (hasta 90°), el brazo cruzaba toda la pantalla.
+- **Comparado con `driving_first_person.jpg`:** las manos ahora están en el volante. En la referencia se ven los dedos doblados sobre el aro; en el juego se ven el dorso y los pulgares, porque la cámara está más arriba. Fotos: `reference/screenshots/manejar_2026-10-24.png`, `freidora_2026-10-24.png`, `plato_2026-10-24.png` (antes: `papas_manos_2026-10-24_antes.png`).
+- **Si no cargan los modelos**, se ven las papas y la mano del código, como antes (no hay manos en el volante).
+

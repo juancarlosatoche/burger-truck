@@ -40,6 +40,60 @@
         #job-banner { opacity: 0; transform: translate(-50%, -14px) scale(.96); transition: opacity .35s ease, transform .35s cubic-bezier(.2,1.4,.4,1); pointer-events: none; }
         #job-banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
         #interaction-prompt { font-family: 'Fredoka', 'Inter', sans-serif; letter-spacing: .01em; }
+        /* ✨ NUEVO: pantalla de título */
+        #instructions {  /* el fondo de colores es el respaldo si el dibujo no carga */
+            position: absolute; inset: 0; z-index: 50; display: flex; overflow: hidden;
+            background: linear-gradient(180deg, #1e1b4b 0%, #4c2a6e 55%, #f08a4b 100%);
+        }
+        .titulo-columna { position: relative; display: flex; flex-direction: column; justify-content: center; padding: 0 24px 0 7vw; max-width: 46rem; }
+        #titulo-pausa { color: #fcd34d; font-size: 20px; letter-spacing: .2em; margin: 0 0 8px; }
+        .titulo-sub { color: rgba(254,243,199,.92); font-size: 18px; line-height: 1.45; margin: 20px 0 32px; max-width: 24rem; }
+        .titulo-boton { font-size: 24px; font-weight: 700; color: #1a1205; padding: 16px 48px; border-radius: 999px; cursor: pointer; transition: transform .15s; }
+        .titulo-boton:hover { transform: scale(1.05); }
+        .titulo-boton:active { transform: scale(.95); }
+        .titulo-ayuda { margin-top: 24px; max-width: 24rem; font-size: 14px; color: #e5e7eb; }
+        .titulo-ayuda summary { cursor: pointer; color: rgba(253,230,138,.9); width: max-content; }
+        .titulo-panel { margin-top: 12px; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); padding: 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); font-size: 12px; }
+        .titulo-panel p { margin: 0 0 8px; }
+        .titulo-panel-tit { font-weight: 600; color: #fcd34d; }
+        .titulo-panel kbd { background: #374151; color: #fff; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .titulo-arte {
+            position: absolute; left: 50%; top: 50%;
+            width: max(100vw, 177.7vh); height: max(56.28vw, 100vh);   /* siempre cubre la pantalla sin deformar el dibujo */
+            background: url('assets/ui/titulo_fondo.jpg') center / 100% 100% no-repeat;
+            transform: translate(-50%, -50%);
+            animation: tituloZoom 28s ease-in-out infinite alternate;
+        }
+        @keyframes tituloZoom { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-51%, -50.5%) scale(1.07); } }
+        .titulo-arte .brillo {  /* luz cálida que titila encima de cada foco */
+            position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(255,190,90,.45) 0%, rgba(255,150,60,.15) 40%, transparent 70%);
+            mix-blend-mode: screen; animation: tituloTitila var(--d) ease-in-out infinite alternate;
+        }
+        @keyframes tituloTitila { 0% { opacity: .55; } 45% { opacity: 1; } 55% { opacity: .8; } 100% { opacity: .95; } }
+        .titulo-arte .vapor {  /* nubecitas de vapor que suben de la plancha */
+            position: absolute; width: 3%; aspect-ratio: 1; border-radius: 50%;
+            background: rgba(255,245,230,.35); filter: blur(10px); opacity: 0;
+            animation: tituloVapor 4.6s ease-out var(--r) infinite;
+        }
+        @keyframes tituloVapor { 0% { transform: translate(-50%, 0) scale(.6); opacity: 0; } 25% { opacity: .7; } 100% { transform: translate(-30%, -260%) scale(2.2); opacity: 0; } }
+        .titulo-sombra { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,10,45,.72) 0%, rgba(15,10,45,.35) 32%, transparent 55%), linear-gradient(0deg, rgba(10,6,30,.45) 0%, transparent 30%); }
+        .titulo-logo {
+            margin: 0; font-size: clamp(64px, 9vw, 136px); line-height: .9; font-weight: 700; color: #f6ead2; letter-spacing: .02em;
+            text-shadow: 0 5px 0 #c8102e, 0 10px 0 #7d0a1c, 0 14px 22px rgba(0,0,0,.45), 0 0 46px rgba(255,170,70,.55);
+            animation: tituloCae .9s cubic-bezier(.2, 1.5, .4, 1) both;
+        }
+        @keyframes tituloCae { from { transform: translateY(-60px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+        .titulo-sub { text-shadow: 0 2px 8px rgba(0,0,0,.6); animation: tituloSube .8s .35s ease-out both; }
+        .titulo-boton {
+            background: linear-gradient(180deg, #ffd56b, #ff9a2e); border: 3px solid #fff3c4;
+            box-shadow: 0 6px 0 #b4501a, 0 10px 30px rgba(255,140,40,.55);
+            animation: tituloSube .8s .55s ease-out both, tituloLate 2.2s 1.6s ease-in-out infinite;
+        }
+        .titulo-ayuda { animation: tituloSube .8s .75s ease-out both; }
+        @keyframes tituloSube { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+        @keyframes tituloLate { 0%, 100% { box-shadow: 0 6px 0 #b4501a, 0 10px 30px rgba(255,140,40,.55); } 50% { box-shadow: 0 6px 0 #b4501a, 0 10px 46px rgba(255,170,60,.95); } }
+        @media (prefers-reduced-motion: reduce) { .titulo-arte, .titulo-arte * { animation: none !important; } }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
@@ -47,24 +101,43 @@
     <!-- Black Screen / Eye Blink Overlay for Wake Up Animation -->
     <div id="eye-overlay" class="fixed inset-0 bg-black z-40 pointer-events-none transition-opacity duration-1000 opacity-100"></div>
 
-    <!-- Instructions / Menu Overlay -->
-    <div id="instructions" class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer z-50 transition-opacity duration-300">
-        <div class="bg-gray-900/90 border border-amber-400/30 p-8 rounded-3xl shadow-2xl max-w-md text-center backdrop-blur-md">
-            <div class="text-amber-400 text-5xl mb-3">🍔</div>
-            <h1 class="font-fun text-3xl font-bold mb-1 text-white">Explorador de Casa 3D</h1>
-            <p class="text-amber-200/80 text-sm mb-6">Despierta de noche, aprende los controles, duerme hasta mañana, haz tus misiones en la cocina y atiende tu Food Truck.</p>
+    <!-- ✨ NUEVO: Pantalla de título (key art + logo + botón). También sirve de pausa al presionar Esc -->
+    <div id="instructions">
+        <!-- El dibujo de fondo. Las luces y el vapor están puestos en % del dibujo, así siempre caen en su lugar -->
+        <div class="titulo-arte">
+            <div class="brillo" style="left:75%;top:17%;width:22%;--d:3.1s"></div>
+            <div class="brillo" style="left:70%;top:42%;width:30%;--d:4.3s"></div>
+            <div class="brillo" style="left:2%;top:13%;width:14%;--d:2.7s"></div>
+            <div class="brillo" style="left:5.5%;top:51%;width:9%;--d:3.7s"></div>
+            <div class="brillo" style="left:28.5%;top:62%;width:7%;--d:2.3s"></div>
+            <div class="vapor" style="left:79%;top:44%;--r:0s"></div>
+            <div class="vapor" style="left:81%;top:45%;--r:1.6s"></div>
+            <div class="vapor" style="left:70%;top:43%;--r:3.1s"></div>
+        </div>
+        <div class="titulo-sombra"></div>
 
-            <div class="bg-black/40 p-4 rounded-2xl mb-6 text-left text-xs space-y-2 text-gray-300 border border-white/10">
-                <p class="font-semibold text-amber-300 mb-1">Controles de PC:</p>
-                <p><span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">W A S D</span> / <span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">Flechas</span> : Moverse</p>
-                <p><span class="bg-gray-700 px-1.5 py-0.5 rounded text-white font-mono">Mouse</span> : Mirar alrededor (si no se bloquea, arrastra con el clic)</p>
-                <p class="font-semibold text-amber-300 mt-3 mb-1">Controles táctiles (Móvil):</p>
-                <p>Joystick (abajo a la izquierda) para moverte y desliza el dedo en la pantalla para mirar. Toca para interactuar.</p>
+        <div class="titulo-columna">
+            <p id="titulo-pausa" class="font-fun" style="display:none">⏸ PAUSA</p>
+            <h1 class="titulo-logo font-fun">BURGER<br>TRUCK</h1>
+            <p class="titulo-sub">Despierta, haz tus misiones, conduce tu food truck y ¡atiende a todo el barrio!</p>
+
+            <div>
+                <button id="btn-start" class="titulo-boton font-fun">
+                    🍔 ¡A cocinar!
+                </button>
             </div>
 
-            <button id="btn-start" class="font-fun w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-black text-lg font-semibold py-3 px-6 rounded-2xl shadow-lg shadow-orange-500/30 transition transform active:scale-95">
-                Despertar y Explorar
-            </button>
+            <!-- Controles escondidos detrás de un enlace pequeño -->
+            <details class="titulo-ayuda">
+                <summary>¿Cómo se juega?</summary>
+                <div class="titulo-panel">
+                    <p class="titulo-panel-tit">En la computadora</p>
+                    <p><kbd>W A S D</kbd> / <kbd>Flechas</kbd> : moverse</p>
+                    <p><kbd>Mouse</kbd> : mirar (si no se bloquea, arrastra con el clic) · <kbd>Esc</kbd> : pausa</p>
+                    <p class="titulo-panel-tit">En el celular</p>
+                    <p>Joystick abajo a la izquierda para moverte, desliza el dedo para mirar y toca para usar cosas.</p>
+                </div>
+            </details>
         </div>
     </div>
 
@@ -1625,6 +1698,8 @@
             document.getElementById('btn-start').addEventListener('click', (e) => {
                 e.stopPropagation();
                 instructions.style.display = 'none';
+                // ✨ NUEVO: si el juego ya empezó, el botón solo quita la pausa (no vuelve a despertar)
+                if (hasStarted) { if (!isTouchDevice) safeLock(); return; }
                 startWakeUpSequence(isTouchDevice);
             });
 
@@ -1639,6 +1714,9 @@
                 if (!isTouchDevice && !isShiftPromptActive && !isWakingUp && !isPCOpen) {
                     instructions.style.display = 'flex';
                     crosshair.classList.add('hidden');
+                    // ✨ NUEVO: la pantalla de título se vuelve pantalla de pausa
+                    document.getElementById('titulo-pausa').style.display = 'block';
+                    document.getElementById('btn-start').textContent = '▶ Seguir jugando';
                 }
             });
 

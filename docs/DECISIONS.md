@@ -235,3 +235,13 @@ All 5 style targets are in `reference/style-targets/`. Each visual change is com
 - **`tools/probar.py`:** ahora espera a que el juego cambie de escena antes de poner la cámara. Sin tarjeta gráfica los cuadros son lentos, y el teletransporte al truck llegaba tarde y metía la cámara adentro del truck.
 - **Diferencias que quedan con el objetivo de estilo:** el objetivo tiene rayos de sol entre los árboles y más neblina dorada; los árboles del objetivo están un poco más pegados al camino; y la casa no se ve al empezar a manejar (el juego la esconde al salir).
 
+
+## 2026-10-25: Title screen with key art (laptop version)
+
+- **What:** the old start box ("Explorador de Casa 3D") is replaced by a full-screen title screen: key art background (`assets/ui/titulo_fondo.jpg`, 187 KB), a "BURGER TRUCK" logo in HTML text, the subtitle, one big **"🍔 ¡A cocinar!"** button, and the controls folded behind "¿Cómo se juega?".
+- **Key art:** made in an image generator with the style line and the style targets attached. The original is kept as `reference/style-targets/title_screen.jpg`; first screenshot in `reference/screenshots/title_screen_2026-10-25.png`.
+- **Alive, not a still picture:** slow zoom on the art, warm glow pulsing over the sign, lamps and service window, steam rising from the grill, logo drops in, button glows. All CSS; the glows are placed in % of the picture, so they stay on their lamps at any window size. Turned off for people who ask their computer for reduced motion.
+- **Pause:** the same screen comes back when Esc frees the mouse, now marked "⏸ PAUSA" with a "▶ Seguir jugando" button. Before, that button re-ran the wake-up sequence; now it only resumes.
+- **Fallback:** if the picture doesn't load, a sky-colored gradient shows behind the logo. The screen uses its own CSS (not Tailwind), so it also works if the Tailwind CDN fails.
+- **Name:** "BURGER TRUCK" matches the repo and the sign on the truck. Ignacio can change it in one line (`titulo-logo` in `index.html`).
+- **Not done yet:** a vertical 9:16 key art for phones (on phones the same picture is cropped today), a generated logo image, sounds.
